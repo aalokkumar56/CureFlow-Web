@@ -1,5 +1,7 @@
 export interface TenantUser {
   role: string
+  name?: string
+  permissions?: string[]
 }
 
 export interface Tenant {

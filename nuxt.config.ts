@@ -39,13 +39,6 @@ export default defineNuxtConfig({
     plugins: [tailwindcss()],
   },
 
-  modules: ['shadcn-nuxt'],
-
-  shadcn: {
-    prefix: '',
-    componentDir: './app/components/ui',
-  },
-
   pages: true,
 
   runtimeConfig: {
