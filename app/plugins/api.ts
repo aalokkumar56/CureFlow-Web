@@ -6,9 +6,12 @@ import { keysToSnakeCase } from '~/utils/api/transform'
 
 export default defineNuxtPlugin((nuxtApp) => {
   const config = useRuntimeConfig()
+  const apiBaseUrl = String(
+    config.public.apiBaseUrl || 'https://localhost:7180/api',
+  ).replace(/\/+$/, '')
 
   const apiClient: AxiosInstance = axios.create({
-    baseURL: config.public.apiBaseUrl,
+    baseURL: apiBaseUrl,
     headers: {
       'Content-Type': 'application/json',
     },

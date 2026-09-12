@@ -1,4 +1,3 @@
-const { $api } = useNuxtApp()
 import { useTenantAuth } from '~/composables/auth/useTenantAuth'
 
 export interface TenantRegistrationPayload {
@@ -10,6 +9,7 @@ export interface TenantRegistrationPayload {
 }
 
 export const useTenantRegistration = () => {
+  const { $api } = useNuxtApp()
   const auth = useTenantAuth()
 
   const loading = ref(false)

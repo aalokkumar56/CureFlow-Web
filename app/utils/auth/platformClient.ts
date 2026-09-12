@@ -1,44 +1,67 @@
 import axios from 'axios'
 
-const config = useRuntimeConfig()
+const PLATFORM_TOKEN_KEY = 'cureflow_platform_token'
 
-const platformClient = axios.create({
-  baseURL: config.public.apiBaseUrl,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
-
-platformClient.interceptors.request.use((request) => {
-  if (import.meta.client) {
-    const token = localStorage.getItem('cureflow_platform_token')
-
-    if (token) {
-      request.headers.Authorization = `Bearer ${token}`
-    }
-  }
-
-  return request
-})
-
-export const fetchPlatformSetupStatus = async () => {
-  const response = await platformClient.get('/platform/auth/setup-status')
-  return response.data
+type PlatformAuthResponse = {
+  access_token: string
+  user?: unknown
 }
 
-export const platformBootstrap = async (data: {
+type PlatformBootstrapData = {
   name: string
   email: string
   password: string
-}) => {
-  const response = await platformClient.post(
+}
+
+const createPlatformClient = () => {
+  const config = useRuntimeConfig()
+  const apiBaseUrl = String(
+    config.public.apiBaseUrl || 'https://localhost:7180/api',
+  ).replace(/\/+$/, '')
+
+  const client = axios.create({
+    baseURL: apiBaseUrl,
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  })
+
+  client.interceptors.request.use((request) => {
+    if (import.meta.client) {
+      const token = localStorage.getItem(PLATFORM_TOKEN_KEY)
+
+      if (token) {
+        request.headers.Authorization = `Bearer ${token}`
+      }
+    }
+
+    return request
+  })
+
+  return client
+}
+
+export const fetchPlatformSetupStatus = async () => {
+  const client = createPlatformClient()
+
+  const response = await client.get('/platform/auth/setup-status')
+
+  return response.data
+}
+
+export const platformBootstrap = async (
+  data: PlatformBootstrapData,
+) => {
+  const client = createPlatformClient()
+
+  const response = await client.post<PlatformAuthResponse>(
     '/platform/auth/bootstrap',
     data,
   )
 
   if (import.meta.client && response.data.access_token) {
     localStorage.setItem(
-      'cureflow_platform_token',
+      PLATFORM_TOKEN_KEY,
       response.data.access_token,
     )
   }
@@ -50,14 +73,19 @@ export const platformLogin = async (
   email: string,
   password: string,
 ) => {
-  const response = await platformClient.post(
+  const client = createPlatformClient()
+
+  const response = await client.post<PlatformAuthResponse>(
     '/platform/auth/login',
-    { email, password },
+    {
+      email,
+      password,
+    },
   )
 
   if (import.meta.client && response.data.access_token) {
     localStorage.setItem(
-      'cureflow_platform_token',
+      PLATFORM_TOKEN_KEY,
       response.data.access_token,
     )
   }
@@ -67,6 +95,6 @@ export const platformLogin = async (
 
 export const platformLogout = () => {
   if (import.meta.client) {
-    localStorage.removeItem('cureflow_platform_token')
+    localStorage.removeItem(PLATFORM_TOKEN_KEY)
   }
 }

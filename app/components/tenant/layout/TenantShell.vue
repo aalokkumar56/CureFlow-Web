@@ -3,11 +3,13 @@ import TenantSidebar from './TenantSidebar.vue'
 </script>
 
 <template>
-  <div>
+  <div class="tenant-shell">
     <TenantSidebar />
 
-    <main>
-      <slot />
+    <main class="tenant-main">
+      <div class="tenant-content">
+        <slot />
+      </div>
     </main>
   </div>
 </template>

@@ -28,16 +28,31 @@
 //     preset: 'node-server',
 //   },
 // })
+import tailwindcss from '@tailwindcss/vite'
+
 export default defineNuxtConfig({
   compatibilityDate: '2026-09-11',
 
   css: ['~/assets/css/main.css'],
 
+  vite: {
+    plugins: [tailwindcss()],
+  },
+
+  modules: ['shadcn-nuxt'],
+
+  shadcn: {
+    prefix: '',
+    componentDir: './app/components/ui',
+  },
+
   pages: true,
 
   runtimeConfig: {
     public: {
-      apiBaseUrl: 'http://localhost:5000',
+      apiBaseUrl:
+        process.env.NUXT_PUBLIC_API_BASE_URL ||
+        `${process.env.NUXT_BACKEND_API_URL || 'https://localhost:7180'}/api`,
     },
   },
 })
