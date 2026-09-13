@@ -1,9 +1,8 @@
-export default defineNuxtRouteMiddleware(() => {
+export default defineNuxtRouteMiddleware((to) => {
   const auth = useTenantAuth()
-  const route = useRoute()
 
   const tenant = auth.tenant.value
-  const pathname = route.path
+  const pathname = to.path
 
   if (!tenant) {
     return

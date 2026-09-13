@@ -1,5 +1,10 @@
 <template>
-  <NuxtLayout>
-    <NuxtPage />
-  </NuxtLayout>
+  <ClientOnly>
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
+    <template #fallback>
+      <div class="app-loading" aria-hidden="true" />
+    </template>
+  </ClientOnly>
 </template>

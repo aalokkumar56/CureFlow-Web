@@ -134,24 +134,10 @@ export const useTenantAuth = () => {
       return
     }
 
-    try {
-      const session = await $api.get<TenantSession>(
-        '/auth/session',
-      )
-
-      user.value = session.user
-      tenant.value = session.tenant
-
-      authStorage.setSession(
-        token.value,
-        user.value,
-        tenant.value,
-      )
-    } catch {
-      logout(false)
-    } finally {
-      loading.value = false
-    }
+    // The current backend does not expose /auth/session. The legacy contract
+    // stores the complete session locally during login, so use that cached
+    // session instead of making a request that always returns 404.
+    loading.value = false
   }
 
   const login = async (

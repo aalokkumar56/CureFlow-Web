@@ -18,6 +18,9 @@ export default defineNuxtPlugin((nuxtApp) => {
   })
 
   apiClient.interceptors.request.use((request) => {
+    if (request.data instanceof FormData) {
+      request.headers.delete('Content-Type')
+    }
     const token = authStorage.getToken()
 
     if (token) {
@@ -58,6 +61,10 @@ export default defineNuxtPlugin((nuxtApp) => {
   )
 
   const api = {
+    download: async (url: string): Promise<Blob> => {
+      const response = await apiClient.get<Blob>(url, { responseType: 'blob' })
+      return response.data
+    },
     get: async <T = unknown>(
       url: string,
       params?: Record<string, unknown>,

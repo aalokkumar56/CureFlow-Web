@@ -105,7 +105,7 @@ export const isAdminRole = (role: string | null | undefined) => {
 export const getPermissionsForUser = (
   user: PermissionUser | null | undefined,
 ) => {
-    if (Array.isArray(user?.permissions) && user.permissions.length > 0) {
+    if (Array.isArray(user?.permissions)) {
     return user.permissions;
   }
   return ROLE_PERMISSIONS[normalizeRole(user?.role)] || [];
