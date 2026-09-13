@@ -1,0 +1,8 @@
+<script setup lang="ts">
+import { normalizeApiError } from '~/utils/api/errors'
+import { PERMISSION_LABELS } from '~/utils/permissions'
+type Permission = { key?: string; code?: string; label?: string; category?: string }
+const { $api } = useNuxtApp(); const permissions = ref<Permission[]>([]); const loading = ref(false); const error = ref(''); const grouped = computed(() => { const map = new Map<string, Permission[]>(); permissions.value.forEach(item => { const key = item.category || 'Other'; map.set(key, [...(map.get(key) || []), item]) }); return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0])) })
+onMounted(async () => { loading.value = true; try { const result = await $api.get<Permission[]>('/admin/permissions'); permissions.value = Array.isArray(result) ? result : [] } catch (cause) { error.value = normalizeApiError(cause, 'Permissions could not be loaded.') } finally { loading.value = false } })
+</script>
+<template><section class="settings-card settings-access-panel"><header><div><h3>Permission catalog</h3><p>Reference list of permissions available for role assignment.</p></div></header><p v-if="error" class="settings-alert">{{ error }}</p><div v-if="loading" class="settings-state">Loading permissions…</div><div v-else-if="!permissions.length" class="settings-empty">No permissions available.</div><div v-else class="settings-permission-catalog"><section v-for="[category, items] in grouped" :key="category"><h4>{{ category }}</h4><article v-for="item in items" :key="item.key || item.code"><strong>{{ item.label || PERMISSION_LABELS[(item.key || item.code || '') as keyof typeof PERMISSION_LABELS] || item.key || item.code }}</strong><code>{{ item.key || item.code }}</code></article></section></div></section></template>

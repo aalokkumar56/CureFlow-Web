@@ -11,6 +11,13 @@ const isPatientsList = computed(() => route.path === '/patients')
 const title = computed(() => {
   if (route.path === '/') return 'Dashboard'
   if (route.path === '/inbox') return 'WhatsApp Inbox'
+  if (route.path === '/email-inbox') return 'Email Inbox'
+  if (route.path === '/missed-revenue') return 'Analytics'
+  if (route.path === '/tasks') return 'Follow-ups'
+  if (route.path === '/doctors') return 'Referral CRM'
+  if (route.path.startsWith('/doctors/')) return 'Referral CRM'
+  if (route.path === '/staff') return 'Hospital Staff'
+  if (route.path === '/settings') return 'Settings'
   if (route.path === '/patients/new') return 'New patient'
   if (route.path.startsWith('/patients/')) return 'Patients'
   return route.path.split('/').filter(Boolean).at(-1)?.replace(/-/g, ' ') || 'CureFlow'

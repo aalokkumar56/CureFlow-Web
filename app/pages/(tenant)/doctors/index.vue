@@ -1,0 +1,23 @@
+<script setup lang="ts">
+import { PhFunnel, PhMagnifyingGlass, PhPlus, PhUserCircle, PhPhone, PhHandshake, PhStar } from '@phosphor-icons/vue'
+import ReferrerCard from '~/components/tenant/referrals/ReferrerCard.vue'
+import ReferrerFormModal from '~/components/tenant/referrals/ReferrerFormModal.vue'
+import ReferralSummary from '~/components/tenant/referrals/ReferralSummary.vue'
+import { useReferrals } from '~/composables/referrals/useReferrals'
+import { referrerCategories, referralStages, referrerStage, type Referrer } from '~/utils/referrals'
+import { normalizeApiError } from '~/utils/api/errors'
+definePageMeta({ layout: 'tenant', middleware: ['tenant-auth', 'tenant-approval'] })
+useHead({ title: 'Referral CRM' })
+const { referrers, analytics, loading, saving, error, draft, load, create, markContacted } = useReferrals()
+const search = ref(''); const category = ref('all'); const modalOpen = ref(false); const actionError = ref('')
+const icons = { lead: PhUserCircle, contacted: PhPhone, referred: PhHandshake, converted: PhStar }
+const filtered = computed(() => referrers.value.filter(doctor => { const q = search.value.trim().toLowerCase(); const matchesText = !q || [doctor.name, doctor.clinic, doctor.specialty, doctor.phone].some(value => String(value || '').toLowerCase().includes(q)); return matchesText && (category.value === 'all' || doctor.category === category.value) }))
+const stageItems = (id: string) => filtered.value.filter(doctor => referrerStage(doctor) === id)
+const openCreate = () => { actionError.value = ''; modalOpen.value = true }
+const save = async () => { actionError.value = ''; try { await create(); modalOpen.value = false } catch (cause) { actionError.value = normalizeApiError(cause, 'Referrer could not be added.') } }
+const move = async (doctor: Referrer, stage: string) => { if (stage === 'lead' || doctor.last_contact_at) return; try { await markContacted(doctor.id) } catch (cause) { actionError.value = normalizeApiError(cause, 'Referrer could not be updated.') } }
+onMounted(() => load())
+</script>
+<template>
+  <section class="referrals-page"><header class="referrals-toolbar"><div class="referrals-toolbar-title"><PhFunnel :size="18" /><strong>Referral pipeline</strong><span>{{ filtered.length }}</span></div><div class="referrals-toolbar-actions"><label class="referrals-search"><PhMagnifyingGlass :size="17" /><input v-model="search" type="search" placeholder="Search doctors, clinics, specialties…" aria-label="Search referrers" /></label><select v-model="category" class="referrals-filter" aria-label="Filter by category"><option value="all">All categories</option><option v-for="(label, value) in referrerCategories" :key="value" :value="value">{{ label }}</option></select><button type="button" class="referral-primary-button" @click="openCreate"><PhPlus :size="17" /> Add referrer</button></div></header><p v-if="actionError" class="referral-alert">{{ actionError }}</p><div v-if="loading" class="referral-state">Loading referral pipeline…</div><div v-else-if="error" class="referral-state"><p>{{ error }}</p><button type="button" class="referral-secondary-button" @click="load()">Try again</button></div><div v-else class="referral-layout"><div v-if="!filtered.length" class="referral-empty"><PhUserCircle :size="42" /><strong>No referring doctors yet</strong><p>Add a referrer to start building your pipeline.</p><button type="button" class="referral-primary-button" @click="openCreate"><PhPlus :size="17" /> Add referrer</button></div><div v-else class="referral-board"><article v-for="stage in referralStages" :key="stage.id" class="referral-column" :class="`stage-${stage.tone}`" @dragover.prevent @drop="move(JSON.parse($event.dataTransfer?.getData('referrer') || '{}'), stage.id)"><header><div><span><component :is="icons[stage.id]" :size="17" /><strong>{{ stage.label }}</strong></span><small>{{ stage.subtitle }}</small></div><b>{{ stageItems(stage.id).length }}</b></header><div class="referral-column-meta"><span>Referrals <strong>{{ stageItems(stage.id).reduce((sum, doctor) => sum + Number(doctor.patients_referred || 0), 0) }}</strong></span><span>In stage <strong>{{ stageItems(stage.id).length }}</strong></span></div><div v-if="!stageItems(stage.id).length" class="referral-column-empty">Drop referrer here</div><ReferrerCard v-for="doctor in stageItems(stage.id)" :key="doctor.id" :doctor="doctor" draggable="true" @dragstart="$event.dataTransfer?.setData('referrer', JSON.stringify(doctor))" /></article></div><ReferralSummary :analytics="analytics" :doctors="referrers" /></div><ReferrerFormModal :open="modalOpen" :draft="draft" :saving="saving" :error="actionError" @close="modalOpen = false" @save="save" /></section>
+</template>

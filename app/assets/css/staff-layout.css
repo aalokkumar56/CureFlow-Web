@@ -1,0 +1,4 @@
+.staff-filter-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;padding:4px;background:#fff;border:1px solid var(--cf-border);border-radius:var(--cf-radius-md)}
+.staff-toolbar-actions{order:0}
+@media (max-width:800px){.staff-filter-bar{align-items:stretch;flex-direction:column}.staff-toolbar-actions{align-items:stretch;flex-wrap:wrap}.staff-search{width:100%}}
+@media (max-width:560px){.staff-toolbar-actions{flex-direction:column}.staff-toolbar-actions .staff-primary-button{width:100%}}
