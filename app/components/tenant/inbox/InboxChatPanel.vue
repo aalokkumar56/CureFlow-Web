@@ -133,7 +133,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
         </template>
       </div>
       <form v-if="canSend" class="whatsapp-composer" @submit.prevent="send">
-        <p v-if="props.whatsappDisabled" class="whatsapp-disabled">{{ props.disabledMessage || 'WhatsApp sending is disabled or not configured.' }}</p>
+        <p v-if="props.whatsappDisabled" class="whatsapp-disabled">{{ props.disabledMessage || 'WhatsApp sending is not configured or is disabled.' }}</p>
         <p v-if="error" class="whatsapp-error" role="alert">{{ error }}</p>
         <div v-if="attachment" class="whatsapp-attachment-chip"><PhPaperclip :size="16" /><span>{{ attachment.name }} · {{ formatBytes(attachment.size) }}</span><button type="button" aria-label="Remove attachment" @click="clearAttachment"><PhX :size="16" /></button></div>
         <div class="whatsapp-composer-row">

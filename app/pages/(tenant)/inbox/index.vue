@@ -49,7 +49,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
   <section class="whatsapp-page">
     <div v-if="!canView" class="dashboard-state">You do not have permission to view the WhatsApp inbox.</div>
     <template v-else>
-      <div v-if="whatsappDisabled" class="whatsapp-notice"><PhWarningCircle :size="18" weight="fill" /><span>{{ status?.message || 'WhatsApp messaging is disabled or not configured. Open Settings → Integrations to enable it.' }}</span></div>
+      <div v-if="whatsappDisabled" class="whatsapp-notice"><PhWarningCircle :size="18" weight="fill" /><span>{{ status?.message || 'WhatsApp messaging is not configured or is disabled. Open Settings → Integrations to enable it.' }}</span></div>
       <p v-if="error && !conversations.length" class="whatsapp-error" role="alert">{{ error }}</p>
       <div class="whatsapp-workspace">
         <InboxConversationList v-model:query="query" :conversations="filteredConversations" :selected-id="selectedId" :loading="loading" :error="error && conversations.length ? error : ''" @select="selectedId = $event.id" />

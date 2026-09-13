@@ -5,8 +5,10 @@ import {
   PhMagnifyingGlass,
   PhPlus,
 } from '@phosphor-icons/vue'
+import AppointmentFormModal from '~/components/appointments/AppointmentFormModal.vue'
 import { useAppointments } from '~/composables/appointments/useAppointments'
 import { hasPermission, PERMISSIONS } from '~/utils/permissions'
+import { normalizeApiError } from '~/utils/api/errors'
 
 definePageMeta({
   layout: 'tenant',
@@ -21,6 +23,8 @@ type PatientOption = {
   id: string | number
   name?: string
   phone?: string
+  age?: number
+  gender?: string
 }
 
 type AppointmentStatusKey = 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show'
@@ -63,24 +67,21 @@ const {
   loading,
   error,
   load,
-  loadOptions,
   updateStatus,
   create,
 } = useAppointments()
 
 const patients = ref<PatientOption[]>([])
+const addPatientOpen = ref(false)
+const addingPatient = ref(false)
+const addPatientError = ref('')
+const newPatient = reactive({ name: '', phone: '', age: '', gender: '' })
 const search = ref('')
 const createOpen = ref(false)
 const saving = ref(false)
 const formError = ref('')
+const defaultPatientId = ref<string | number>()
 const activeDrag = ref<{ id: string | number, status: string } | null>(null)
-const form = reactive({
-  patientId: '',
-  doctorUserId: '',
-  department: '',
-  scheduledAt: '',
-  notes: '',
-})
 
 const isoDate = (date: Date) => date.toISOString().slice(0, 10)
 
@@ -140,11 +141,11 @@ const loadPatients = async () => {
     const { $api } = useNuxtApp()
     const response = await $api.get<unknown>('/patients', { page: 1, page_size: 300 })
 
-    patients.value = Array.isArray(response)
+    patients.value = (Array.isArray(response)
       ? (response as PatientOption[])
       : Array.isArray((response as { items?: unknown[] }).items)
         ? ((response as { items: PatientOption[] }).items)
-        : []
+        : []).sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' }))
   } catch {
     patients.value = []
   }
@@ -162,18 +163,43 @@ const formatTime = (value?: string) =>
     ? new Intl.DateTimeFormat('en-IN', { hour: 'numeric', minute: '2-digit' }).format(new Date(value))
     : '—'
 
-const resetForm = () => {
-  form.patientId = ''
-  form.doctorUserId = ''
-  form.department = ''
-  form.scheduledAt = ''
-  form.notes = ''
+const openAddPatient = () => {
+  addPatientError.value = ''
+  Object.assign(newPatient, { name: '', phone: '', age: '', gender: '' })
+  addPatientOpen.value = true
 }
 
-const save = async () => {
+const addPatient = async () => {
+  addPatientError.value = ''
+  if (!newPatient.name.trim() || !newPatient.phone.trim()) {
+    addPatientError.value = 'Name and phone number are required.'
+    return
+  }
+  addingPatient.value = true
+  try {
+    const { $api } = useNuxtApp()
+    const result = await $api.post<{ id: string }>('/patients', {
+      name: newPatient.name.trim(),
+      phone: newPatient.phone.trim(),
+      age: newPatient.age ? Number(newPatient.age) : null,
+      gender: newPatient.gender || null,
+      inquiry_source: 'manual',
+    })
+    await loadPatients()
+    defaultPatientId.value = result.id
+    addPatientOpen.value = false
+    createOpen.value = true
+  } catch (cause) {
+    addPatientError.value = normalizeApiError(cause, 'Patient could not be added.')
+  } finally {
+    addingPatient.value = false
+  }
+}
+
+const save = async (payload: Record<string, unknown>) => {
   formError.value = ''
 
-  if (!form.patientId || !form.doctorUserId || !form.department || !form.scheduledAt) {
+  if (!payload.patient_id || !payload.doctor_user_id || !payload.department || !payload.scheduled_at) {
     formError.value = 'Complete all required fields.'
     return
   }
@@ -181,15 +207,9 @@ const save = async () => {
   saving.value = true
 
   try {
-    await create({
-      ...form,
-      patient_id: form.patientId,
-      doctor_user_id: form.doctorUserId,
-      scheduled_at: form.scheduledAt,
-    })
+    await create(payload)
 
     createOpen.value = false
-    resetForm()
     await refreshAppointments()
   } catch {
     formError.value = 'Appointment could not be scheduled.'
@@ -249,7 +269,7 @@ watch(range, async () => {
 }, { immediate: true })
 
 onMounted(async () => {
-  await Promise.all([loadOptions(), loadPatients()])
+  await loadPatients()
 })
 </script>
 
@@ -331,57 +351,27 @@ onMounted(async () => {
       </div>
     </div>
 
-    <section v-if="createOpen" class="appointments-modal">
-      <div class="appointments-modal-panel">
-        <header>
-          <h3>New appointment</h3>
-          <button type="button" @click="createOpen = false">Close</button>
-        </header>
+    <AppointmentFormModal
+      :open="createOpen"
+      :patients="patients"
+      :default-patient-id="defaultPatientId"
+      :saving="saving"
+      :error="formError"
+      @close="createOpen = false"
+      @save="save"
+      @add-patient="openAddPatient"
+    />
 
-        <form @submit.prevent="save">
-          <label>
-            Patient
-            <select v-model="form.patientId">
-              <option value="">Select patient</option>
-              <option v-for="patient in patients" :key="patient.id" :value="patient.id">
-                {{ patient.name || 'Unnamed patient' }}
-              </option>
-            </select>
-          </label>
-
-          <label>
-            Doctor
-            <select v-model="form.doctorUserId">
-              <option value="">Select doctor</option>
-              <option v-for="doctor in options.doctors" :key="doctor.user_id" :value="doctor.user_id">
-                {{ doctor.name }}
-              </option>
-            </select>
-          </label>
-
-          <label>
-            Department
-            <input v-model="form.department" type="text" placeholder="Department" />
-          </label>
-
-          <label>
-            Date & time
-            <input v-model="form.scheduledAt" type="datetime-local" />
-          </label>
-
-          <label>
-            Notes
-            <textarea v-model="form.notes" rows="3" placeholder="Notes" />
-          </label>
-
-          <p v-if="formError" class="appointments-form-error">{{ formError }}</p>
-
-          <div class="appointments-modal-actions">
-            <button type="button" class="secondary" @click="createOpen = false">Cancel</button>
-            <button type="submit" :disabled="saving">
-              {{ saving ? 'Saving…' : 'Save appointment' }}
-            </button>
-          </div>
+    <section v-if="addPatientOpen" class="appointments-modal">
+      <div class="appointments-modal-panel appointments-add-patient-panel">
+        <header><h3>Add patient</h3><button type="button" @click="addPatientOpen = false">Close</button></header>
+        <form @submit.prevent="addPatient">
+          <label>Full name<input v-model="newPatient.name" required /></label>
+          <label>Phone number<input v-model="newPatient.phone" type="tel" required /></label>
+          <label>Age<input v-model="newPatient.age" type="number" min="0" max="150" /></label>
+          <label>Gender<select v-model="newPatient.gender"><option value="">Not specified</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option><option value="unknown">Unknown</option></select></label>
+          <p v-if="addPatientError" class="appointments-form-error">{{ addPatientError }}</p>
+          <div class="appointments-modal-actions"><button type="button" class="secondary" @click="addPatientOpen = false">Cancel</button><button type="submit" :disabled="addingPatient">{{ addingPatient ? 'Adding…' : 'Add patient' }}</button></div>
         </form>
       </div>
     </section>

@@ -33,7 +33,7 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineNuxtConfig({
   compatibilityDate: '2026-09-11',
 
-  css: ['~/assets/css/main.css', '~/assets/css/patients.css', '~/assets/css/whatsapp.css', '~/assets/css/campaigns.css', '~/assets/css/analytics.css', '~/assets/css/followups.css', '~/assets/css/referrals.css', '~/assets/css/staff.css', '~/assets/css/staff-layout.css', '~/assets/css/settings.css', '~/assets/css/email.css'],
+  css: ['~/assets/css/main.css', '~/assets/css/patients.css', '~/assets/css/whatsapp.css', '~/assets/css/campaigns.css', '~/assets/css/analytics.css', '~/assets/css/followups.css', '~/assets/css/referrals.css', '~/assets/css/staff.css', '~/assets/css/staff-layout.css', '~/assets/css/settings.css', '~/assets/css/email.css', '~/assets/css/platform.css'],
 
   vite: {
     plugins: [tailwindcss()],

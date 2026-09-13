@@ -225,8 +225,8 @@
 					<p
 						v-if="previewCount != null"
 						class="campaign-audience-result">
-						{{ previewCount }} patient{{ previewCount === 1 ? "" : "s" }} match
-						this audience.
+						{{ previewCount }} patient{{ previewCount === 1 ? "" : "s" }}
+						{{ previewCount === 1 ? "matches" : "match" }} this audience.
 					</p>
 				</fieldset>
 			</div>

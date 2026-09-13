@@ -12,8 +12,6 @@ const revenuePeriod = ref<'revenue_month' | 'revenue_last_month' | 'revenue_week
 
 onMounted(load)
 
-const firstName = computed(() => auth.user.value?.name?.replace(/^Dr\.\s*/i, '').split(' ')[0] || 'there')
-const hospitalName = computed(() => String(auth.tenant.value?.name || 'your hospital'))
 const appointments = computed(() => Array.isArray(overview.value?.[appointmentPeriod.value]) ? overview.value[appointmentPeriod.value] as Array<Record<string, unknown>> : [])
 const revenue = computed(() => Array.isArray(overview.value?.[revenuePeriod.value]) ? overview.value[revenuePeriod.value] as Array<Record<string, unknown>> : [])
 const upcoming = computed(() => overview.value?.upcoming_appointments || [])
@@ -29,8 +27,6 @@ const revenueTitle = (item: Record<string, unknown>) => `${item.label || ''}: ${
 
 <template>
   <section class="dashboard">
-    <div class="dashboard-header"><div><h2>Good morning, {{ firstName }} <span aria-hidden="true">👋</span></h2><p>Here's what's happening at {{ hospitalName }} today.</p></div></div>
-
     <div v-if="!canView" class="dashboard-state">You do not have permission to view the dashboard.</div>
     <template v-else>
       <div v-if="loading" class="dashboard-cards dashboard-loading" aria-label="Loading dashboard"><div v-for="n in 4" :key="n" class="dashboard-card" /></div>

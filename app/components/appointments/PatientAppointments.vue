@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type {
   Appointment,
-  BookingOptions,
 } from '~/composables/appointments/useAppointments'
+import AppointmentFormModal from '~/components/appointments/AppointmentFormModal.vue'
 import { patientDate, patientLabel } from '~/utils/patients'
 import { normalizeApiError } from '~/utils/api/errors'
 import { hasPermission, PERMISSIONS } from '~/utils/permissions'
@@ -19,74 +19,40 @@ const canEdit = computed(() =>
 const canConsult = computed(() =>
   hasPermission(auth.user.value, PERMISSIONS.ClinicalEdit),
 )
-const options = ref<BookingOptions>({ doctors: [] })
 const showing = ref(false)
 const editingId = ref<Appointment['id']>()
 const saving = ref(false)
 const error = ref('')
-const form = reactive({
-  doctor_user_id: '',
-  department: '',
-  scheduled_at: '',
-  chief_complaint: '',
-  duration_minutes: 30,
-  notes: '',
-})
+const activeAppointment = computed(() =>
+  props.appointments.find((appointment) => appointment.id === editingId.value) || null,
+)
 const resetForm = () => {
   editingId.value = undefined
-  form.doctor_user_id = ''
-  form.department = ''
-  form.scheduled_at = ''
-  form.chief_complaint = ''
-  form.duration_minutes = 30
-  form.notes = ''
 }
 async function open() {
   resetForm()
   showing.value = true
-  try {
-    options.value = await $api.get<BookingOptions>(
-      '/appointments/booking-options',
-    )
-  } catch (cause) {
-    error.value = normalizeApiError(
-      cause,
-      'Booking options could not be loaded.',
-    )
-  }
 }
 async function openEdit(appointment: Appointment) {
   editingId.value = appointment.id
   showing.value = true
-  form.doctor_user_id = appointment.doctor_user_id ? String(appointment.doctor_user_id) : ''
-  form.department = appointment.department || ''
-  form.scheduled_at = appointment.scheduled_at
-    ? new Date(appointment.scheduled_at).toISOString().slice(0, 16)
-    : ''
-  form.chief_complaint = appointment.chief_complaint || ''
-  form.duration_minutes = appointment.duration_minutes || 30
-  form.notes = appointment.notes || ''
-  try {
-    options.value = await $api.get<BookingOptions>('/appointments/booking-options')
-  } catch (cause) {
-    error.value = normalizeApiError(cause, 'Booking options could not be loaded.')
-  }
 }
-async function save() {
+async function save(payload: Record<string, unknown>) {
   if ((!editingId.value && !canCreate.value) || (editingId.value && !canEdit.value) || saving.value) return
   saving.value = true
   error.value = ''
   try {
-    const payload = {
-      ...form,
-      doctor_user_id: form.doctor_user_id || null,
-      scheduled_at: new Date(form.scheduled_at).toISOString(),
-      duration_minutes: Number(form.duration_minutes) || 30,
+    const appointmentPayload = {
+      ...payload,
+      patient_id: props.patientId,
+      scheduled_at: new Date(String(payload.scheduled_at)).toISOString(),
+      doctor_user_id: payload.doctor_user_id || null,
+      duration_minutes: Number(payload.duration_minutes) || 30,
     }
     if (editingId.value) {
-      await $api.patch(`/appointments/${editingId.value}`, payload)
+      await $api.patch(`/appointments/${editingId.value}`, appointmentPayload)
     } else {
-      await $api.post('/appointments', { ...payload, patient_id: props.patientId })
+      await $api.post('/appointments', appointmentPayload)
     }
     showing.value = false
     resetForm()
@@ -122,54 +88,15 @@ async function status(appointment: Appointment, value: string) {
       </button>
     </header>
     <p v-if="error" class="appointments-error" role="alert">{{ error }}</p>
-    <form v-if="showing" class="patient-record-form" @submit.prevent="save">
-      <fieldset class="patient-form-grid patient-fields" :disabled="saving">
-        <label
-          ><span>Doctor</span
-          ><select
-            v-model="form.doctor_user_id"
-            @change="
-              form.department =
-                options.doctors.find(
-                  (d) => String(d.user_id) === form.doctor_user_id,
-                )?.department || form.department
-            "
-          >
-            <option value="">Not assigned</option>
-            <option
-              v-for="doctor in options.doctors"
-              :key="doctor.user_id"
-              :value="String(doctor.user_id)"
-            >
-              {{ doctor.name }}
-            </option>
-          </select></label
-        ><label
-          ><span>Department *</span
-          ><input v-model="form.department" required /></label
-        ><label
-          ><span>Date & time (your local time) *</span
-          ><input
-            v-model="form.scheduled_at"
-            type="datetime-local"
-            required /></label
-        ><label><span>Chief complaint</span><input v-model="form.chief_complaint" /></label
-        ><label><span>Duration (minutes)</span><input v-model.number="form.duration_minutes" type="number" min="1" /></label
-        ><label><span>Notes</span><textarea v-model="form.notes" /></label>
-      </fieldset>
-      <footer class="patient-form-actions">
-        <button
-          type="button"
-          class="patients-secondary-btn"
-          :disabled="saving"
-          @click="showing = false"
-        >
-          Cancel</button
-        ><button class="patients-primary-btn" :disabled="saving">
-          {{ saving ? 'Saving…' : editingId ? 'Save changes' : 'Book appointment' }}
-        </button>
-      </footer>
-    </form>
+    <AppointmentFormModal
+      :open="showing"
+      :patient-id="patientId"
+      :appointment="activeAppointment"
+      :saving="saving"
+      :error="error"
+      @close="showing = false"
+      @save="save"
+    />
     <div v-if="!appointments.length" class="empty-state-box">
       No appointments recorded.
     </div>

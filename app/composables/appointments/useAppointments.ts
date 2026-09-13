@@ -24,6 +24,7 @@ export type BookingDoctor = {
 
 export type BookingOptions = {
   doctors: BookingDoctor[]
+  departments: string[]
 }
 
 type AppointmentRange = {
@@ -46,10 +47,60 @@ const normalizeList = <T>(response: unknown): T[] => {
   return []
 }
 
+const doctorId = (doctor: Record<string, unknown>) =>
+  doctor.user_id ??
+  doctor.userId ??
+  doctor.doctor_user_id ??
+  doctor.doctorUserId ??
+  doctor.id
+
+const doctorName = (doctor: Record<string, unknown>) =>
+  doctor.name ??
+  doctor.display_name ??
+  doctor.displayName ??
+  doctor.user_name ??
+  doctor.userName ??
+  doctor.full_name ??
+  doctor.fullName
+
+export const normalizeBookingDoctors = (response: unknown): BookingDoctor[] => {
+  const seen = new Set<string>()
+  const doctors: BookingDoctor[] = []
+
+  for (const doctor of normalizeList<Record<string, unknown>>(response)) {
+    const id = doctorId(doctor)
+    const name = doctorName(doctor)
+
+    if ((typeof id !== 'string' && typeof id !== 'number') || !name) {
+      continue
+    }
+
+    const key = String(id)
+    if (seen.has(key)) {
+      continue
+    }
+
+    seen.add(key)
+    doctors.push({
+      user_id: id,
+      name: String(name),
+      department: doctor.department ? String(doctor.department) : undefined,
+    })
+  }
+
+  return doctors.sort((a, b) => a.name.localeCompare(b.name))
+}
+
+export const normalizeDepartments = (response: unknown) =>
+  normalizeList<string | { name?: unknown }>(response)
+    .map((item) => (typeof item === 'string' ? item : String(item.name || '')))
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b))
+
 export const useAppointments = () => {
   const auth = useTenantAuth()
   const appointments = useState<Appointment[]>('tenant-appointments', () => [])
-  const options = useState<BookingOptions>('tenant-appointment-options', () => ({ doctors: [] }))
+  const options = useState<BookingOptions>('tenant-appointment-options', () => ({ doctors: [], departments: [] }))
   const loading = useState('tenant-appointments-loading', () => false)
   const error = useState<string | null>('tenant-appointments-error', () => null)
 
@@ -80,11 +131,20 @@ export const useAppointments = () => {
   }
 
   const loadOptions = async () => {
-    try {
-      const { $api } = useNuxtApp()
-      options.value = await $api.get<BookingOptions>('/appointments/booking-options')
-    } catch {
-      options.value = { doctors: [] }
+    const { $api } = useNuxtApp()
+    const [bookingResult, departmentResult, staffResult] = await Promise.allSettled([
+      $api.get<Partial<BookingOptions>>('/appointments/booking-options'),
+      $api.get<unknown>('/hospital-profile/departments'),
+      $api.get<unknown>('/staff/doctors'),
+    ])
+    const bookingOptions = bookingResult.status === 'fulfilled' ? bookingResult.value : {}
+    const departmentResponse = departmentResult.status === 'fulfilled' ? departmentResult.value : []
+    const staffResponse = staffResult.status === 'fulfilled' ? staffResult.value : []
+    const bookingDoctors = normalizeBookingDoctors(bookingOptions.doctors || bookingOptions)
+    const staffDoctors = normalizeBookingDoctors(staffResponse)
+    options.value = {
+      doctors: normalizeBookingDoctors([...bookingDoctors, ...staffDoctors]),
+      departments: normalizeDepartments(departmentResponse),
     }
   }
 

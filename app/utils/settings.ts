@@ -2,9 +2,9 @@ export type SettingsSection = 'hospital' | 'integrations' | 'notifications' | 't
 export type HospitalProfile = { name?: string; phone?: string; email?: string; address?: string; timezone?: string; departments?: unknown[]; [key: string]: unknown }
 export type MessageTemplate = { id: string | number; name: string; body?: string; category?: string; enabled?: boolean }
 export const settingsSections: Array<{ id: SettingsSection; label: string; description: string }> = [
-  { id: 'users', label: 'Users', description: 'Manage tenant team members' },
-  { id: 'roles', label: 'Roles', description: 'Assign role permissions' },
-  { id: 'permissions', label: 'Permissions', description: 'Review available access' },
+  { id: 'users', label: 'Users', description: 'Manage team members' },
+  { id: 'roles', label: 'Roles', description: 'Assign permissions to roles' },
+  { id: 'permissions', label: 'Permissions', description: 'Review available access controls' },
   { id: 'hospital', label: 'Hospital', description: 'Profile, timezone, and departments' },
   { id: 'integrations', label: 'Integrations', description: 'WhatsApp, SMS, and email connections' },
   { id: 'notifications', label: 'Notifications', description: 'In-app notification preferences' },

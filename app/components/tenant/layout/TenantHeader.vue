@@ -6,10 +6,12 @@ import NotificationMenu from '~/components/tenant/notifications/NotificationMenu
 
 const route = useRoute()
 const { mobileOpen } = useTenantShell()
+const auth = useTenantAuth()
 const patientTotal = useState<number | null>('tenant-patient-total', () => null)
 const isPatientsList = computed(() => route.path === '/patients')
+const firstName = computed(() => auth.user.value?.name?.replace(/^Dr\.\s*/i, '').split(' ')[0] || 'there')
 const title = computed(() => {
-  if (route.path === '/') return 'Dashboard'
+  if (route.path === '/') return `Good morning, ${firstName.value}`
   if (route.path === '/inbox') return 'WhatsApp Inbox'
   if (route.path === '/email-inbox') return 'Email Inbox'
   if (route.path === '/missed-revenue') return 'Analytics'

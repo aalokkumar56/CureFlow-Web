@@ -27,7 +27,7 @@
 			<PhEnvelopeSimple
 				:size="48"
 				weight="duotone" />
-			<p>Select a thread to view messages</p>
+			<p>Select a thread to view messages.</p>
 		</div>
 		<template v-else
 			><header class="email-conversation-header">

@@ -67,7 +67,7 @@ export const clinicalSections: Record<string, RecordSection> = {
         ['diastolic_bp', 'Diastolic BP (mmHg)'],
         ['heart_rate', 'Heart rate (bpm)'],
         ['temperature', 'Temperature (°F)'],
-        ['respiratory_rate', 'Respiratory rate (/min)'],
+        ['respiratory_rate', 'Respiratory rate (per min)'],
         ['oxygen_saturation', 'Oxygen saturation (%)'],
         ['blood_sugar_fasting', 'Fasting blood sugar (mg/dL)'],
         ['blood_sugar_postprandial', 'Postprandial blood sugar (mg/dL)'],
@@ -143,7 +143,7 @@ export const clinicalSections: Record<string, RecordSection> = {
 export const lifestyleFields: Field[] = [
   ...[
     ['average_sleep_hours', 'Average sleep (hours)'],
-    ['water_intake_liters_per_day', 'Water intake (litres/day)'],
+    ['water_intake_liters_per_day', 'Water intake (litres per day)'],
     ['meals_per_day', 'Meals per day'],
     ['caffeine_cups_per_day', 'Caffeine (cups/day)'],
     ['exercise_minutes_per_week', 'Exercise (minutes/week)'],
@@ -185,7 +185,7 @@ export const lifestyleFields: Field[] = [
     ['consumes_sugary_drinks', 'Consumes sugary drinks'],
     ['exercises_regularly', 'Exercises regularly'],
     ['chews_tobacco_or_paan', 'Chews tobacco or paan'],
-    ['high_stress_job', 'High stress job'],
+    ['high_stress_job', 'High-stress job'],
     ['has_anxiety_or_depression', 'Anxiety or depression'],
     ['exposure_to_pollution', 'Exposure to pollution'],
   ].map(([key, label]) => ({ key: key!, label: label!, type: 'checkbox' })),

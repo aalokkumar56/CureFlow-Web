@@ -26,7 +26,7 @@ export const followUpColumns = [
   { id: 'due_today', label: 'Due today', tone: 'blue', empty: 'No follow-ups due today' },
   { id: 'this_week', label: 'This week', tone: 'amber', empty: 'No follow-ups scheduled this week' },
   { id: 'overdue', label: 'Overdue', tone: 'red', empty: 'No overdue follow-ups' },
-  { id: 'completed', label: 'Completed', tone: 'green', empty: 'Drop here to mark completed' },
+  { id: 'completed', label: 'Completed', tone: 'green', empty: 'Drop a follow-up here to mark it complete' },
 ] as const
 
 export const followUpTypes = ['follow_up', 'callback', 'appointment_reminder', 'post_visit_checkin', 're_engagement', 'custom']

@@ -19,10 +19,10 @@ export type Referral = { id: string | number; patient_id?: string | number; pati
 export type ReferralAnalytics = { total_referrals?: number; total_revenue?: number; top_doctors?: Array<{ doctor_id: string | number; doctor_name?: string; count?: number; revenue?: number }> }
 export const referrerCategories: Record<string, string> = { family_gp: 'Family GP', specialist: 'Specialist', consultant: 'Consultant', clinic: 'Clinic', hospital: 'Hospital', other: 'Other' }
 export const referralStages = [
-  { id: 'lead', label: 'Lead', subtitle: 'New leads, not yet contacted', tone: 'blue' },
-  { id: 'contacted', label: 'Contacted', subtitle: 'Contacted, waiting for response', tone: 'teal' },
+  { id: 'lead', label: 'Lead', subtitle: 'New leads not yet contacted', tone: 'blue' },
+  { id: 'contacted', label: 'Contacted', subtitle: 'Contacted and awaiting a response', tone: 'teal' },
   { id: 'referred', label: 'Referred', subtitle: 'Actively referring patients', tone: 'violet' },
-  { id: 'converted', label: 'Converted', subtitle: 'Converted to paying patients', tone: 'amber' },
+  { id: 'converted', label: 'Converted', subtitle: 'Referred patients with recorded revenue', tone: 'amber' },
 ] as const
 export const normalizeReferrers = (value: unknown): Referrer[] => {
   const items = Array.isArray(value) ? value : value && typeof value === 'object' && Array.isArray((value as { items?: unknown[] }).items) ? (value as { items: unknown[] }).items : []
