@@ -33,7 +33,7 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineNuxtConfig({
   compatibilityDate: '2026-09-11',
 
-  css: ['~/assets/css/main.css', '~/assets/css/patients.css'],
+  css: ['~/assets/css/main.css', '~/assets/css/patients.css', '~/assets/css/whatsapp.css'],
 
   vite: {
     plugins: [tailwindcss()],

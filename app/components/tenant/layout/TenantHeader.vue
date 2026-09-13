@@ -10,6 +10,7 @@ const patientTotal = useState<number | null>('tenant-patient-total', () => null)
 const isPatientsList = computed(() => route.path === '/patients')
 const title = computed(() => {
   if (route.path === '/') return 'Dashboard'
+  if (route.path === '/inbox') return 'WhatsApp Inbox'
   if (route.path === '/patients/new') return 'New patient'
   if (route.path.startsWith('/patients/')) return 'Patients'
   return route.path.split('/').filter(Boolean).at(-1)?.replace(/-/g, ' ') || 'CureFlow'

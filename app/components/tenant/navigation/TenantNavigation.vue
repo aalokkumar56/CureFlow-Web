@@ -11,7 +11,7 @@ const route = useRoute()
 const icons = { dashboard: PhHouse, appointments: PhCalendarBlank, patients: PhUsersThree, 'whatsapp-inbox': PhSparkle, 'email-inbox': PhEnvelopeSimple, campaigns: PhMegaphone, analytics: PhChartBar, 'follow-ups': PhListChecks, 'referral-crm': PhStethoscope, 'hospital-staff': PhUserCircle }
 const canViewSettings = computed(() => hasPermission(auth.user.value, PERMISSIONS.SettingsView))
 const isActive = (path: string) => path === '/' ? route.path === '/' : route.path === path || route.path.startsWith(`${path}/`)
-const isMigratedRoute = (path: string) => ['/', '/patients', '/appointments'].includes(path)
+const isMigratedRoute = (path: string) => ['/', '/patients', '/appointments', '/inbox'].includes(path)
 </script>
 
 <template>
