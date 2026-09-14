@@ -86,6 +86,7 @@ const refresh = async () => {
     await filter('page', String(pagination.value.totalPages))
 }
 const loadUpcomingAppointments = async () => {
+  if (import.meta.server) return
   if (!canView.value || !canAppointments.value || appointmentsLoading.value)
     return
   appointmentsLoading.value = true
@@ -155,21 +156,25 @@ const exportCsv = () =>
     ],
     'patients-current-page.csv',
   )
+const loadDepartments = async () => {
+  if (!canView.value) return
+  departments.value = patientList<string | { name: string }>(
+    await $api.get('/hospital-profile/departments'),
+  ).map((item) => (typeof item === 'string' ? item : item.name))
+}
+
+await useAsyncData(
+  `patients-directory-${auth.tenant.value?.id || 'current'}-${route.fullPath}`,
+  async () => {
+    if (route.query.new === '1' && canCreate.value) return null
+    await Promise.allSettled([refresh(), loadUpcomingAppointments(), loadDepartments()])
+    return patients.value
+  },
+  { lazy: true },
+)
+
 onMounted(async () => {
-  if (route.query.new === '1' && canCreate.value) {
-    await navigateTo('/patients/new')
-    return
-  }
-  await Promise.allSettled([
-    refresh(),
-    loadUpcomingAppointments(),
-    (async () => {
-      if (!canView.value) return
-      departments.value = patientList<string | { name: string }>(
-        await $api.get('/hospital-profile/departments'),
-      ).map((item) => (typeof item === 'string' ? item : item.name))
-    })(),
-  ])
+  if (route.query.new === '1' && canCreate.value) await navigateTo('/patients/new')
 })
 </script>
 <template>

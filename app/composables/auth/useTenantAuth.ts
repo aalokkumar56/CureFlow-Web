@@ -6,8 +6,6 @@ import type {
 } from '~/types/auth'
 
 export const useTenantAuth = () => {
-  const { $api } = useNuxtApp()
-
   const token = useState<string | null>(
     'tenant-auth-token',
     () => null,
@@ -47,11 +45,11 @@ export const useTenantAuth = () => {
   const login = async (
     credentials: Record<string, unknown>,
   ) => {
-    const response =
-      await $api.post<TenantLoginResponse>(
-        '/auth/login',
-        credentials,
-      )
+    const response = await $fetch<TenantLoginResponse>('/api/auth/login', {
+      method: 'POST',
+      body: credentials,
+      credentials: 'include',
+    })
 
     if (!response.access_token) {
       throw new Error(
@@ -73,19 +71,23 @@ export const useTenantAuth = () => {
   }
 
   const refreshSession = async () => {
-    const session = await $api.get<TenantSession>('/auth/session')
+    const session = await $fetch<TenantSession>('/api/auth/session', { credentials: 'include' })
     user.value = session.user
     tenant.value = session.tenant
-    if (token.value) authStorage.setSession(token.value, session.user, session.tenant)
+    if (token.value && token.value !== 'cookie-session') authStorage.setSession(token.value, session.user, session.tenant)
     return session
   }
 
-  const logout = (redirect = true) => {
+  const logout = async (redirect = true) => {
     token.value = null
     user.value = null
     tenant.value = null
 
     authStorage.clear()
+    if (import.meta.client) {
+      await $fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => undefined)
+      for (const key of ['dashboard-overview', 'tenant-patient-total', 'notifications-unread-count', 'notifications-items']) clearNuxtState(key)
+    }
 
     if (redirect && import.meta.client) {
       navigateTo('/login')

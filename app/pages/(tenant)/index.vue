@@ -11,7 +11,13 @@ const appointmentPeriod = ref<'appointments_week' | 'appointments_last_week'>('a
 const revenuePeriod = ref<'revenue_month' | 'revenue_last_month' | 'revenue_week'>('revenue_month')
 
 const isDoctor = computed(() => auth.user.value?.role?.toLowerCase() === 'doctor')
-onMounted(() => { if (!isDoctor.value) void load() })
+if (!isDoctor.value) {
+  await useAsyncData(
+    `dashboard-overview-${auth.tenant.value?.id || 'current'}`,
+    async () => { await load(); return overview.value },
+    { lazy: true },
+  )
+}
 
 const appointments = computed(() => Array.isArray(overview.value?.[appointmentPeriod.value]) ? overview.value[appointmentPeriod.value] as Array<Record<string, unknown>> : [])
 const revenue = computed(() => Array.isArray(overview.value?.[revenuePeriod.value]) ? overview.value[revenuePeriod.value] as Array<Record<string, unknown>> : [])

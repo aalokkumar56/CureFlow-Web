@@ -24,6 +24,12 @@ export const useNotifications = () => {
     const { $api } = useNuxtApp(); await $api.post('/notifications/mark-all-read'); items.value.forEach(item => { item.is_read = true }); unreadCount.value = 0
   }
 
-  onMounted(() => { refreshCount(); const interval = window.setInterval(refreshCount, 30_000); onBeforeUnmount(() => window.clearInterval(interval)) })
+  onMounted(() => {
+    void refreshCount()
+    const refreshWhenVisible = () => { if (document.visibilityState === 'visible') void refreshCount() }
+    const interval = window.setInterval(refreshWhenVisible, 30_000)
+    document.addEventListener('visibilitychange', refreshWhenVisible)
+    onBeforeUnmount(() => { window.clearInterval(interval); document.removeEventListener('visibilitychange', refreshWhenVisible) })
+  })
   return { unreadCount, items, loading, refreshCount, refreshList, markRead, markAllRead }
 }

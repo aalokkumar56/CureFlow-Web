@@ -6,18 +6,23 @@ import { keysToSnakeCase } from '~/utils/api/transform'
 
 export default defineNuxtPlugin((nuxtApp) => {
   const config = useRuntimeConfig()
-  const apiBaseUrl = String(
+  const configuredApiBaseUrl = String(
     config.public.apiBaseUrl || 'https://localhost:7180/api',
   ).replace(/\/+$/, '')
+  const apiBaseUrl = configuredApiBaseUrl.startsWith('/') && import.meta.server
+    ? `${useRequestURL().origin}${configuredApiBaseUrl}`
+    : configuredApiBaseUrl
 
   const apiClient: AxiosInstance = axios.create({
     baseURL: apiBaseUrl,
+    timeout: 15000,
     headers: {
       'Content-Type': 'application/json',
     },
   })
 
   apiClient.interceptors.request.use((request) => {
+    request.headers['X-Request-Id'] = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`
     const isFormData =
       typeof FormData !== 'undefined' && request.data instanceof FormData
     if (isFormData) {
@@ -28,6 +33,10 @@ export default defineNuxtPlugin((nuxtApp) => {
 
     if (token) {
       request.headers.Authorization = `Bearer ${token}`
+    }
+    if (import.meta.server) {
+      const cookie = useRequestHeaders(['cookie']).cookie
+      if (cookie) request.headers.Cookie = cookie
     }
 
     if (

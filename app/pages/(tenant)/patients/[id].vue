@@ -140,10 +140,10 @@ async function load(initial = false) {
     if (!patient.value?.id) throw new Error('Patient not found.')
     const results = await Promise.allSettled([
       canClinical.value
-        ? $api.get(`/allergies/patient/${id}`)
+        ? (import.meta.client ? $api.get(`/allergies/patient/${id}`) : Promise.resolve([]))
         : Promise.resolve([]),
       can(PERMISSIONS.AppointmentView)
-        ? loadAppointments()
+        ? (import.meta.client ? loadAppointments() : Promise.resolve([]))
         : Promise.resolve([]),
     ])
     const allergyResult = results[0]!
@@ -185,6 +185,7 @@ async function load(initial = false) {
       }
     }
     if (
+      import.meta.client &&
       !consultationRequestHandled.value &&
       route.query.appointment &&
       canClinical.value
@@ -299,7 +300,11 @@ async function completeConsultation() {
     saving.value = false
   }
 }
-onMounted(() => load(true))
+await useAsyncData(
+  `patient-profile-${auth.tenant.value?.id || 'current'}-${id}`,
+  async () => { await load(true); return patient.value },
+  { lazy: true },
+)
 </script>
 <template>
   <section class="patients-page">

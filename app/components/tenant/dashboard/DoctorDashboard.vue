@@ -76,22 +76,31 @@ async function checkIn(id: string | number) {
     busy.value = ''
   }
 }
+date.value = hospitalDay(new Date().toISOString(), timezone.value)
+await useAsyncData(
+  `doctor-dashboard-${auth.tenant.value?.id || 'current'}-${date.value}`,
+  async () => { await load(); return overview.value },
+  { lazy: true },
+)
 watch([date, scope, doctor], load)
-onMounted(() => {
-  date.value = hospitalDay(new Date().toISOString(), timezone.value)
-})
 onScopeDispose(() => {
   request++
 })
 </script>
 <template>
-  <section class="dashboard">
-    <h1>Clinical schedule</h1>
+  <section class="dashboard doctor-dashboard">
+    <header class="doctor-dashboard-header">
+      <div>
+        <p class="doctor-dashboard-eyebrow">Today at a glance</p>
+        <h1>Clinical schedule</h1>
+      </div>
+      <p class="doctor-dashboard-date">{{ date }}</p>
+    </header>
     <p v-if="!canView" role="alert">
       You do not have permission to view the clinical dashboard.
     </p>
     <template v-else
-      ><div class="patients-toolbar">
+      ><div class="patients-toolbar doctor-dashboard-controls">
         <label>Date<input v-model="date" type="date" /></label
         ><label
           >Schedule<select v-model="scope">

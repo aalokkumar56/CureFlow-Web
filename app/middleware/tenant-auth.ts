@@ -1,12 +1,12 @@
 export default defineNuxtRouteMiddleware(async () => {
-  // Tenant sessions intentionally live in localStorage to preserve the legacy
-  // auth contract. They are unavailable during SSR, so enforcing this guard on
-  // the server would redirect a valid browser session before hydration.
+  const auth = useTenantAuth()
+
   if (import.meta.server) {
+    const cookieHeader = useRequestHeaders(['cookie']).cookie || ''
+    if (!cookieHeader.includes('cureflow_session=')) return
+    try { await auth.refreshSession(); auth.token.value = 'cookie-session' } catch { return navigateTo('/login') }
     return
   }
-
-  const auth = useTenantAuth()
 
   if (auth.loading.value) {
     await auth.initialize()

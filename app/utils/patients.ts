@@ -36,15 +36,7 @@ export const patientInitials = (name?: string) =>
     .map((part) => part[0]?.toUpperCase())
     .join('')
 export function patientList<T>(value: unknown): T[] {
-  if (Array.isArray(value)) return value as T[]
-  if (
-    value &&
-    typeof value === 'object' &&
-    'items' in value &&
-    Array.isArray(value.items)
-  )
-    return value.items as T[]
-  return []
+  return listFromResponse<T>(value)
 }
 export function downloadPatientCsv(rows: unknown[][], filename: string) {
   const csv = rows
@@ -67,3 +59,4 @@ export function downloadPatientCsv(rows: unknown[][], filename: string) {
   link.click()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
+import { listFromResponse } from './api/normalize'

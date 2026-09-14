@@ -20,9 +20,13 @@ const title = computed(() => {
   if (route.path.startsWith('/doctors/')) return 'Referral CRM'
   if (route.path === '/staff') return 'Hospital Staff'
   if (route.path === '/settings') return 'Settings'
+  if (route.path === '/patients') return 'Patients'
+  if (route.path === '/appointments') return 'Appointments'
+  if (route.path === '/campaigns') return 'Campaigns'
   if (route.path === '/patients/new') return 'New patient'
   if (route.path.startsWith('/patients/')) return 'Patients'
-  return route.path.split('/').filter(Boolean).at(-1)?.replace(/-/g, ' ') || 'CureFlow'
+  const segment = route.path.split('/').filter(Boolean).at(-1)?.replace(/-/g, ' ')
+  return segment ? segment.replace(/\b\w/g, character => character.toUpperCase()) : 'CureFlow'
 })
 </script>
 

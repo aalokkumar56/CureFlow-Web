@@ -3,9 +3,10 @@ import { patientList } from './patients'
 
 export async function collectAppointments(
   fetchPage: (page: number) => Promise<unknown>,
+  maxPages = 25,
 ): Promise<Appointment[]> {
   const appointments: Appointment[] = []
-  for (let page = 1; ; page++) {
+  for (let page = 1; page <= maxPages; page++) {
     const response = await fetchPage(page)
     const rows = patientList<Appointment>(response)
     appointments.push(...rows)
