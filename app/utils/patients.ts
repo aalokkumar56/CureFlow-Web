@@ -16,10 +16,11 @@ export const patientSources: Record<string, string> = {
   referral: 'Referral',
   csv_import: 'CSV import',
 }
-export const patientDate = (value?: unknown) => {
+export const patientDate = (value?: unknown, timeZone?: string) => {
   if (typeof value !== 'string' || !value || Number.isNaN(Date.parse(value)))
     return '—'
   return new Intl.DateTimeFormat('en-IN', {
+    timeZone,
     day: 'numeric',
     month: 'short',
     year: 'numeric',

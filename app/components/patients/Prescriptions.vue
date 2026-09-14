@@ -7,6 +7,7 @@ import type {
 import { patientDate, patientList } from '~/utils/patients'
 import { normalizeApiError } from '~/utils/api/errors'
 import { hasPermission, PERMISSIONS } from '~/utils/permissions'
+import { usePrescriptionPrint } from '~/composables/patients/usePrescriptionPrint'
 const props = defineProps<{
   patientId: string
   patientName?: string
@@ -15,6 +16,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ changed: [] }>()
 const { $api } = useNuxtApp()
+const { printing, printError, printPrescription } = usePrescriptionPrint()
 const auth = useTenantAuth()
 const canEdit = computed(() =>
   hasPermission(auth.user.value, PERMISSIONS.ClinicalEdit),
@@ -158,11 +160,8 @@ async function save() {
   }
 }
 function printRecord(record: ClinicalRecord) {
-  // Render Vue-escaped record content through the browser's print stylesheet.
-  printId.value = record.id || ''
-  nextTick(() => window.print())
+  if (record.id) void printPrescription(record.id)
 }
-const printId = ref('')
 function openPrescription() {
   showing.value = true
   if (!medicines.value.length) addMedicine()
@@ -191,8 +190,8 @@ onMounted(load)
         + New prescription
       </button>
     </header>
-    <p v-if="error" class="appointments-error" role="alert">
-      {{ error }}
+    <p v-if="error || printError" class="appointments-error" role="alert">
+      {{ error || printError }}
       <button v-if="!showing" class="patients-secondary-btn" @click="load">
         Retry
       </button>
@@ -284,7 +283,6 @@ onMounted(load)
       v-for="record in records"
       :key="record.id"
       class="patient-record-card"
-      :class="{ 'patient-print-target': printId === record.id }"
     >
       <header>
         <div>
@@ -294,7 +292,11 @@ onMounted(load)
             {{ patientDate(record.prescribed_at) }} · {{ record.doctor_name }}
           </p>
         </div>
-        <button class="patients-secondary-btn" @click="printRecord(record)">
+        <button
+          class="patients-secondary-btn"
+          :disabled="printing"
+          @click="printRecord(record)"
+        >
           Print
         </button>
       </header>

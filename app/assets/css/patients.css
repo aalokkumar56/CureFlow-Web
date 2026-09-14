@@ -1208,6 +1208,34 @@
     flex-wrap: wrap;
   }
 }
+.lifecycle-page {
+  max-width: 760px;
+  margin: 5vh auto;
+  padding: 24px;
+  display: grid;
+  gap: 20px;
+}
+.lifecycle-page h1 { font-size: 26px; font-weight: 650; }
+.lifecycle-page p { margin-block: 12px; }
+.patient-import-dialog {
+  width: min(640px, calc(100vw - 32px));
+  max-height: calc(100dvh - 40px);
+  margin: auto;
+  padding: 24px;
+  border: 1px solid #dbe4e0;
+  border-radius: 16px;
+  color: #16382d;
+  background: white;
+  overflow: auto;
+}
+.patient-import-dialog::backdrop { background: rgb(15 35 29 / 45%); }
+.patient-import-dialog form { display: grid; gap: 16px; }
+.patient-import-dialog h2 { font-size: 20px; font-weight: 650; }
+.patient-import-dialog li { margin-block: 8px; overflow-wrap: anywhere; }
+.patient-import-file { display: grid; gap: 8px; }
+.patient-preview-actions { flex-wrap: wrap; margin-block: 16px; }
+.patient-preview-panel dd { overflow-wrap: anywhere; }
+.settings-form-grid, .integration-fields { border: 0; min-width: 0; }
 @media print {
   body:has(.patient-print-target) * {
     visibility: hidden;

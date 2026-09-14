@@ -39,9 +39,10 @@ local .NET controller/DTO contracts, rather than translating JSX mechanically.
 
 ## Verification
 
-`pnpm test` exercises request ordering, state isolation, permission denial, CSV
-formula protection, date handling, form normalization, duplicate/read-only save
-protection, and clinical draft preservation after an API failure.
+The migration audit includes manual source and contract verification for request
+ordering, state isolation, permission denial, CSV formula protection, date handling,
+form normalization, duplicate/read-only save protection, and clinical draft
+preservation after an API failure. No test runner is included in the Nuxt project.
 
 `pnpm typecheck` validates the Nuxt application. `pnpm build` produces the production
 client/server build.

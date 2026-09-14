@@ -18,8 +18,11 @@ export default defineNuxtPlugin((nuxtApp) => {
   })
 
   apiClient.interceptors.request.use((request) => {
-    if (request.data instanceof FormData) {
-      request.headers.delete('Content-Type')
+    const isFormData =
+      typeof FormData !== 'undefined' && request.data instanceof FormData
+    if (isFormData) {
+      request.headers?.delete?.('Content-Type')
+      request.headers?.delete?.('content-type')
     }
     const token = authStorage.getToken()
 
@@ -29,7 +32,7 @@ export default defineNuxtPlugin((nuxtApp) => {
 
     if (
       request.data &&
-      !(request.data instanceof FormData) &&
+      !isFormData &&
       typeof request.data === 'object'
     ) {
       request.data = keysToSnakeCase(request.data)

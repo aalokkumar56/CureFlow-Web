@@ -3,9 +3,20 @@ import {
   usePatients,
   type PatientRecord,
 } from '~/composables/patients/usePatients'
+import {
+  hospitalTimezone,
+  hospitalDay,
+  hospitalTime,
+} from '~/utils/tenant-time'
+import { collectAppointments } from '~/utils/patient-appointments'
 import type { Appointment } from '~/composables/appointments/useAppointments'
 import type { ClinicalRecord } from '~/utils/patient-clinical'
-import { patientDate, patientInitials, patientLabel, patientList } from '~/utils/patients'
+import {
+  patientDate,
+  patientInitials,
+  patientLabel,
+  patientList,
+} from '~/utils/patients'
 import {
   hasPermission,
   PERMISSIONS,
@@ -21,6 +32,7 @@ useHead({ title: 'Patient profile | CureFlow' })
 const route = useRoute()
 const router = useRouter()
 const auth = useTenantAuth()
+const timezone = computed(() => hospitalTimezone(auth.tenant.value))
 const { $api } = useNuxtApp()
 const { getById, update } = usePatients()
 const id = String(route.params.id)
@@ -83,8 +95,12 @@ const severeAllergies = computed(() =>
   ),
 )
 const todayAppointments = computed(() => {
-  const today = new Date().toDateString()
-  return appointments.value.filter((item) => item.scheduled_at && new Date(item.scheduled_at).toDateString() === today)
+  const today = hospitalDay(new Date().toISOString(), timezone.value)
+  return appointments.value.filter(
+    (item) =>
+      item.scheduled_at &&
+      hospitalDay(item.scheduled_at, timezone.value) === today,
+  )
 })
 const upcomingAppointments = computed(() => {
   const now = Date.now()
@@ -92,30 +108,24 @@ const upcomingAppointments = computed(() => {
   return appointments.value
     .filter((item) => {
       const time = item.scheduled_at ? new Date(item.scheduled_at).getTime() : 0
-      return time > now && time <= end && !['cancelled', 'completed'].includes(item.status)
+      return (
+        time > now &&
+        time <= end &&
+        !['cancelled', 'completed'].includes(item.status)
+      )
     })
-    .sort((a, b) => new Date(a.scheduled_at || 0).getTime() - new Date(b.scheduled_at || 0).getTime())
+    .sort(
+      (a, b) =>
+        new Date(a.scheduled_at || 0).getTime() -
+        new Date(b.scheduled_at || 0).getTime(),
+    )
     .slice(0, 5)
 })
 async function loadAppointments() {
-  // This API has no patient filter; filtering only its first page loses records.
-  const matched: Appointment[] = []
-  let page = 1
-  let total = Infinity
-  let read = 0
-  while (read < total) {
-    const result = await $api.get<{ items: Appointment[]; total: number }>(
-      '/appointments',
-      { page, page_size: 100 },
-    )
-    const rows = patientList<Appointment>(result)
-    if (!rows.length) break
-    matched.push(...rows.filter((item) => String(item.patient_id) === id))
-    read += rows.length
-    total = Number(result.total ?? read)
-    page++
-  }
-  return matched
+  const rows = await collectAppointments((page) =>
+    $api.get('/appointments', { page, page_size: 100 }),
+  )
+  return rows.filter((item) => String(item.patient_id) === id)
 }
 async function load(initial = false) {
   if (!canView.value) {
@@ -144,7 +154,41 @@ async function load(initial = false) {
       appointments.value = patientList<Appointment>(
         appointmentResult.value,
       ).filter((item) => String(item.patient_id) === id)
-    if (!consultationRequestHandled.value && route.query.appointment && canClinical.value) {
+    if (
+      route.query.visit &&
+      !consultationRequestHandled.value &&
+      can(PERMISSIONS.ClinicalEdit)
+    ) {
+      consultationRequestHandled.value = true
+      try {
+        const visit = await $api.get<{
+          id: string
+          patient_id: string
+          appointment_id?: string
+          status: string
+        }>(`/visits/${encodeURIComponent(String(route.query.visit))}`)
+        if (String(visit.patient_id) !== id)
+          throw new Error('This consultation belongs to another patient.')
+        if (visit.status === 'in_progress') {
+          visitId.value = visit.id
+          appointmentId.value = visit.appointment_id
+        } else {
+          await router.replace({
+            query: { ...route.query, visit: undefined, appointment: undefined },
+          })
+        }
+      } catch (cause) {
+        error.value = normalizeApiError(
+          cause,
+          'Consultation could not be resumed.',
+        )
+      }
+    }
+    if (
+      !consultationRequestHandled.value &&
+      route.query.appointment &&
+      canClinical.value
+    ) {
       const requested = appointments.value.find(
         (item) => String(item.id) === String(route.query.appointment),
       )
@@ -185,10 +229,18 @@ async function save(payload: Record<string, unknown>) {
 }
 async function startConsultation(appointment: Appointment) {
   if (!can(PERMISSIONS.ClinicalEdit) || saving.value || visitId.value) return
+  if (!['scheduled', 'confirmed'].includes(appointment.status)) {
+    error.value =
+      'Only scheduled or checked-in appointments can start a consultation.'
+    return
+  }
   saving.value = true
   error.value = ''
   try {
-    if (appointment.status === 'scheduled' && can(PERMISSIONS.AppointmentEdit)) {
+    if (
+      appointment.status === 'scheduled' &&
+      can(PERMISSIONS.AppointmentEdit)
+    ) {
       await $api.patch(`/appointments/${appointment.id}/status`, {
         status: 'confirmed',
       })
@@ -203,7 +255,16 @@ async function startConsultation(appointment: Appointment) {
     })
     visitId.value = result.id
     appointmentId.value = String(appointment.id)
-    await tab('notes')
+    consultationRequestHandled.value = true
+    await router.replace({
+      query: {
+        ...route.query,
+        tab: 'notes',
+        edit: undefined,
+        visit: result.id,
+        appointment: String(appointment.id),
+      },
+    })
     success.value =
       'Consultation started. New records will be linked to this visit.'
   } catch (cause) {
@@ -224,6 +285,9 @@ async function completeConsultation() {
       })
     visitId.value = undefined
     appointmentId.value = undefined
+    await router.replace({
+      query: { ...route.query, visit: undefined, appointment: undefined },
+    })
     success.value = 'Consultation completed.'
     await load()
   } catch (cause) {
@@ -337,35 +401,79 @@ onMounted(() => load(true))
         >
       </nav>
       <template v-if="activeTab === 'today'"
-        ><div class="patient-appointment-summary">
+        ><div
+          v-if="can(PERMISSIONS.AppointmentView)"
+          class="patient-appointment-summary"
+        >
           <article class="patient-clinical-panel">
             <header class="patient-section-header">
               <h2>Today’s appointments</h2>
-              <button class="patients-secondary-btn" @click="tab('appointments')">View all</button>
+              <button
+                class="patients-secondary-btn"
+                @click="tab('appointments')"
+              >
+                View all
+              </button>
             </header>
-            <div v-if="todayAppointments.length" class="patient-appointment-list">
-              <div v-for="appointment in todayAppointments" :key="appointment.id" class="patient-appointment-summary-row">
-                <strong>{{ appointment.scheduled_at ? new Date(appointment.scheduled_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '—' }}</strong>
-                <span>{{ appointment.doctor_name || 'Doctor not assigned' }} · {{ appointment.department || 'No department' }}</span>
+            <div
+              v-if="todayAppointments.length"
+              class="patient-appointment-list"
+            >
+              <div
+                v-for="appointment in todayAppointments"
+                :key="appointment.id"
+                class="patient-appointment-summary-row"
+              >
+                <strong>{{
+                  hospitalTime(appointment.scheduled_at, timezone)
+                }}</strong>
+                <span
+                  >{{ appointment.doctor_name || 'Doctor not assigned' }} ·
+                  {{ appointment.department || 'No department' }}</span
+                >
                 <em>{{ patientLabel(appointment.status) }}</em>
               </div>
             </div>
-            <p v-else class="empty-state-box">No appointment scheduled for today.</p>
+            <p v-else class="empty-state-box">
+              No appointment scheduled for today.
+            </p>
           </article>
-          <article v-if="upcomingAppointments.length" class="patient-clinical-panel">
+          <article
+            v-if="upcomingAppointments.length"
+            class="patient-clinical-panel"
+          >
             <header class="patient-section-header">
               <h2>Upcoming appointments</h2>
-              <button class="patients-secondary-btn" @click="tab('appointments')">View all</button>
+              <button
+                class="patients-secondary-btn"
+                @click="tab('appointments')"
+              >
+                View all
+              </button>
             </header>
             <div class="patient-appointment-list">
-              <div v-for="appointment in upcomingAppointments" :key="appointment.id" class="patient-appointment-summary-row">
-                <strong>{{ appointment.scheduled_at ? new Date(appointment.scheduled_at).toLocaleDateString([], { day: 'numeric', month: 'short' }) : '—' }}</strong>
-                <span>{{ appointment.doctor_name || 'Doctor not assigned' }} · {{ appointment.department || 'No department' }}</span>
+              <div
+                v-for="appointment in upcomingAppointments"
+                :key="appointment.id"
+                class="patient-appointment-summary-row"
+              >
+                <strong>{{
+                  patientDate(appointment.scheduled_at, timezone)
+                }}</strong>
+                <span
+                  >{{ appointment.doctor_name || 'Doctor not assigned' }} ·
+                  {{ appointment.department || 'No department' }}</span
+                >
                 <em>{{ appointment.duration_minutes || 30 }} min</em>
               </div>
             </div>
           </article>
         </div>
+        <PatientsTodayOverview
+          v-if="canClinical"
+          :patient-id="id"
+          :timezone="timezone"
+          @navigate="tab" />
         <div class="patient-overview-grid">
           <article class="patient-clinical-panel">
             <h2>Care summary</h2>
@@ -453,7 +561,7 @@ onMounted(() => load(true))
         @save="save"
         @cancel="tab('today')"
       />
-        <AppointmentsPatientAppointments
+      <AppointmentsPatientAppointments
         v-else-if="activeTab === 'appointments'"
         :patient-id="id"
         :appointments="appointments"
