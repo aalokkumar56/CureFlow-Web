@@ -4,6 +4,8 @@ export type CampaignAudience = {
   tags?: string[]
   departments?: string[]
   statuses?: string[]
+  genders?: string[]
+  patient_ids?: string[]
   inactive_days?: number | null
 }
 
