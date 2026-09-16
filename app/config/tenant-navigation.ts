@@ -21,6 +21,12 @@ export const tenantNavigation: NavigationItem[] = [
     permission: PERMISSIONS.PatientView,
   },
   {
+    id: 'leads',
+    label: 'Leads',
+    to: '/leads',
+    permission: PERMISSIONS.LeadView,
+  },
+  {
     id: 'whatsapp-inbox',
     label: 'WhatsApp Inbox',
     to: '/inbox',

@@ -1,6 +1,9 @@
 export type CampaignStatus = 'draft' | 'scheduled' | 'sending' | 'sent' | string
 
 export type CampaignAudience = {
+  source?: 'patients' | 'leads'
+  all_leads?: boolean
+  lead_ids?: string[]
   tags?: string[]
   departments?: string[]
   statuses?: string[]

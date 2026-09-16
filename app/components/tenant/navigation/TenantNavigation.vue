@@ -8,10 +8,10 @@ const emit = defineEmits<{ navigate: [] }>()
 const { items } = useTenantNavigation()
 const auth = useTenantAuth()
 const route = useRoute()
-const icons = { dashboard: PhHouse, appointments: PhCalendarBlank, patients: PhUsersThree, 'whatsapp-inbox': PhSparkle, 'email-inbox': PhEnvelopeSimple, campaigns: PhMegaphone, analytics: PhChartBar, 'follow-ups': PhListChecks, 'referral-crm': PhStethoscope, 'hospital-staff': PhUserCircle }
+const icons = { dashboard: PhHouse, appointments: PhCalendarBlank, patients: PhUsersThree, leads: PhUsersThree, 'whatsapp-inbox': PhSparkle, 'email-inbox': PhEnvelopeSimple, campaigns: PhMegaphone, analytics: PhChartBar, 'follow-ups': PhListChecks, 'referral-crm': PhStethoscope, 'hospital-staff': PhUserCircle }
 const canViewSettings = computed(() => hasPermission(auth.user.value, PERMISSIONS.SettingsView))
 const isActive = (path: string) => path === '/' ? route.path === '/' : route.path === path || route.path.startsWith(`${path}/`)
-const isMigratedRoute = (path: string) => ['/', '/patients', '/appointments', '/inbox', '/email-inbox', '/campaigns', '/missed-revenue', '/tasks', '/doctors', '/staff'].includes(path)
+const isMigratedRoute = (path: string) => ['/', '/patients', '/leads', '/appointments', '/inbox', '/email-inbox', '/campaigns', '/missed-revenue', '/tasks', '/doctors', '/staff'].includes(path)
 </script>
 
 <template>

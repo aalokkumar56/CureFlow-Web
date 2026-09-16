@@ -8,7 +8,9 @@ const route = useRoute()
 const { mobileOpen } = useTenantShell()
 const auth = useTenantAuth()
 const patientTotal = useState<number | null>('tenant-patient-total', () => null)
+const leadTotal = useState<number | null>('tenant-lead-total', () => null)
 const isPatientsList = computed(() => route.path === '/patients')
+const isLeadsList = computed(() => route.path === '/leads')
 const firstName = computed(() => auth.user.value?.name?.replace(/^Dr\.\s*/i, '').split(' ')[0] || 'there')
 const title = computed(() => {
   if (route.path === '/') return `Good morning, ${firstName.value}`
@@ -34,9 +36,10 @@ const title = computed(() => {
   <header class="tenant-header">
     <div class="tenant-header-title">
       <button class="tenant-header-menu" type="button" aria-label="Open navigation" @click="mobileOpen = true"><PhList :size="21" weight="bold" /></button>
-      <PhUsersThree v-if="isPatientsList" class="tenant-header-patient-icon" :size="22" />
+      <PhUsersThree v-if="isPatientsList || isLeadsList" class="tenant-header-patient-icon" :size="22" />
       <h1>{{ title }}</h1>
       <span v-if="isPatientsList" class="tenant-header-patient-count">{{ patientTotal ?? '—' }}</span>
+      <span v-else-if="isLeadsList" class="tenant-header-patient-count">{{ leadTotal ?? '—' }}</span>
     </div>
     <div class="tenant-header-actions">
       <GlobalSearch />

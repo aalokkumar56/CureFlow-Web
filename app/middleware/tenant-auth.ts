@@ -1,18 +1,13 @@
 export default defineNuxtRouteMiddleware(async () => {
   const auth = useTenantAuth()
 
-  if (import.meta.server) {
-    const cookieHeader = useRequestHeaders(['cookie']).cookie || ''
-    if (!cookieHeader.includes('cureflow_session=')) return
-    try { await auth.refreshSession(); auth.token.value = 'cookie-session' } catch { return navigateTo('/login') }
-    return
-  }
-
-  if (auth.loading.value) {
-    await auth.initialize()
-  }
-
-  if (!auth.isAuthenticated.value) {
-    return navigateTo('/login')
+  try {
+    await auth.refreshSession()
+  } catch (error: any) {
+    auth.token.value = null
+    auth.user.value = null
+    auth.tenant.value = null
+    if (error.statusCode === 401 || error.status === 401) return navigateTo('/login')
+    throw createError({ statusCode: 503, statusMessage: 'Unable to validate your session. Please retry.' })
   }
 })

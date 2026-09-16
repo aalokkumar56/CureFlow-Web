@@ -1,4 +1,4 @@
-import { getCookie, getHeader } from 'h3'
+import { getHeader } from 'h3'
 
 type BackendFetchOptions = Parameters<typeof $fetch>[1]
 
@@ -7,11 +7,13 @@ export const backendBaseUrl = (event: Parameters<typeof getHeader>[0]) => {
   return /\/api$/i.test(configured) ? configured : `${configured}/api`
 }
 
-export const backendAuthHeaders = (event: Parameters<typeof getHeader>[0]) => {
+export const backendAuthHeaders = async (event: Parameters<typeof getHeader>[0]) => {
   const authorization = getHeader(event, 'authorization')
-  const session = getCookie(event, 'cureflow_session')
-  return authorization || session
-    ? { Authorization: authorization || `Bearer ${session}` }
+  const { sessionAccessToken } = await import('./session')
+  const session = await sessionAccessToken(event)
+  const platform = event.path.startsWith('/api/bff/platform/') ? authorization : undefined
+  return platform || session
+    ? { Authorization: platform || `Bearer ${session}` }
     : undefined
 }
 

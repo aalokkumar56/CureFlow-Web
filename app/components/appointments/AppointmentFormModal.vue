@@ -38,11 +38,21 @@ const form = reactive({
   notes: '',
 })
 
+const patientDisplayName = (patient?: PatientOption | null) => {
+  const name = String(patient?.name || '').replace(/[\u0000-\u001f\u007f]/g, '').trim()
+  // Patient names are user data. Do not put markup-like probe strings into the
+  // picker; keep the record selectable by its phone number instead.
+  if (!name || /(?:<\/?|\bon(?:error|load)\s*=|javascript\s*:|\b(?:svg|img)\s*\/?>)/i.test(name)) {
+    return 'Unnamed patient'
+  }
+  return name
+}
+
 const mode = computed(() => props.appointment ? 'edit' : 'create')
 const needsPatient = computed(() => !props.patientId)
 const sortedPatients = computed(() =>
   [...(props.patients || [])].sort((a, b) =>
-    String(a.name || '').localeCompare(String(b.name || ''), undefined, {
+    patientDisplayName(a).localeCompare(patientDisplayName(b), undefined, {
       sensitivity: 'base',
     }),
   ),
@@ -135,22 +145,25 @@ watch(
       </header>
 
       <form @submit.prevent="save">
+        <slot name="before-fields" />
         <label v-if="needsPatient">
           Patient
-          <div class="appointment-patient-picker">
-            <button type="button" class="appointment-picker-trigger" @click="patientPickerOpen = !patientPickerOpen">
-              {{ selectedPatient?.name || 'Select patient' }}
-            </button>
-            <div v-if="patientPickerOpen" class="appointment-picker-menu">
-              <input v-model="patientSearch" type="search" placeholder="Search name or phone..." />
-              <button v-for="patient in filteredPatients" :key="patient.id" type="button" @click="form.patientId = String(patient.id); patientPickerOpen = false">
-                <strong>{{ patient.name || 'Unnamed patient' }}</strong>
-                <small>{{ patient.phone || 'No phone recorded' }}</small>
+          <div class="appointment-patient-controls">
+            <div class="appointment-patient-picker">
+              <button type="button" class="appointment-picker-trigger" @click="patientPickerOpen = !patientPickerOpen">
+                {{ selectedPatient ? patientDisplayName(selectedPatient) : 'Select patient' }}
               </button>
-              <p v-if="!filteredPatients.length">No matching patients.</p>
+              <div v-if="patientPickerOpen" class="appointment-picker-menu">
+                <input v-model="patientSearch" type="search" placeholder="Search name or phone..." />
+                <button v-for="patient in filteredPatients" :key="patient.id" type="button" @click="form.patientId = String(patient.id); patientPickerOpen = false">
+                  <strong>{{ patientDisplayName(patient) }}</strong>
+                  <small>{{ patient.phone || 'No phone recorded' }}</small>
+                </button>
+                <p v-if="!filteredPatients.length">No matching patients.</p>
+              </div>
             </div>
+            <button type="button" class="appointment-add-patient" @click="emit('addPatient')">+ Add patient</button>
           </div>
-          <button type="button" class="appointment-add-patient" @click="emit('addPatient')">+ Add patient</button>
         </label>
 
         <div class="appointment-form-grid">

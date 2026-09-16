@@ -5,10 +5,8 @@ import { incrementGlobalLoader, decrementGlobalLoader } from '~/utils/api/loader
 import { keysToSnakeCase } from '~/utils/api/transform'
 
 export default defineNuxtPlugin((nuxtApp) => {
-  const config = useRuntimeConfig()
-  const configuredApiBaseUrl = String(
-    config.public.apiBaseUrl || 'https://localhost:7180/api',
-  ).replace(/\/+$/, '')
+  // Tenant requests must pass through Nuxt so refresh tokens never reach JS.
+  const configuredApiBaseUrl = '/api/bff'
   const apiBaseUrl = configuredApiBaseUrl.startsWith('/') && import.meta.server
     ? `${useRequestURL().origin}${configuredApiBaseUrl}`
     : configuredApiBaseUrl
@@ -28,11 +26,6 @@ export default defineNuxtPlugin((nuxtApp) => {
     if (isFormData) {
       request.headers?.delete?.('Content-Type')
       request.headers?.delete?.('content-type')
-    }
-    const token = authStorage.getToken()
-
-    if (token) {
-      request.headers.Authorization = `Bearer ${token}`
     }
     if (import.meta.server) {
       const cookie = useRequestHeaders(['cookie']).cookie
@@ -62,6 +55,12 @@ export default defineNuxtPlugin((nuxtApp) => {
 
       if (error.response?.status === 401 && import.meta.client) {
         authStorage.clear()
+        nuxtApp.runWithContext(() => {
+          const auth = useTenantAuth()
+          auth.token.value = null
+          auth.user.value = null
+          auth.tenant.value = null
+        })
 
         if (window.location.pathname !== '/login') {
           await nuxtApp.runWithContext(() => navigateTo('/login'))

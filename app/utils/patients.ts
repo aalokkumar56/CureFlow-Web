@@ -9,6 +9,7 @@ export const patientStatuses: Record<string, string> = {
   re_engagement: 'Re-engagement',
 }
 export const patientSources: Record<string, string> = {
+  lead_conversion: 'Converted from lead',
   website_form: 'Website form',
   phone_call: 'Phone call',
   whatsapp: 'WhatsApp',

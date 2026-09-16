@@ -805,6 +805,7 @@ a {
 .appointments-modal-actions button { min-height: 38px; padding: 0 14px; border: 1px solid var(--cf-border); border-radius: var(--cf-radius-sm); background: var(--cf-primary); color: white; font-weight: 600; }
 .appointments-modal-actions button.secondary { background: white; color: var(--cf-text); }
 .appointment-patient-picker { position: relative; }
+.appointment-patient-controls { display: grid; gap: 6px; }
 .appointment-picker-trigger { width: 100%; padding: 10px 12px; text-align: left; border: 1px solid var(--cf-border); border-radius: var(--cf-radius-sm); background: white; color: var(--cf-text); }
 .appointment-picker-menu { position: absolute; inset: calc(100% + 4px) 0 auto; z-index: 5; max-height: 250px; overflow-y: auto; padding: 8px; border: 1px solid var(--cf-border); border-radius: var(--cf-radius-sm); background: white; box-shadow: var(--cf-shadow-md); }
 .appointment-picker-menu > input { margin-bottom: 6px; }
@@ -812,6 +813,6 @@ a {
 .appointment-picker-menu > button:hover { background: var(--cf-primary-soft); }
 .appointment-picker-menu > button small { color: var(--cf-text-muted); }
 .appointment-picker-menu > p { margin: 8px; color: var(--cf-text-muted); font-size: 12px; }
-.appointment-add-patient { align-self: start; margin-top: -5px; padding: 0; border: 0; background: transparent; color: var(--cf-primary); font-size: 12px; font-weight: 600; }
+.appointment-add-patient { justify-content: flex-start; width: fit-content; align-self: start; margin: 0; padding: 0; border: 0; background: transparent; color: var(--cf-primary); font-size: 12px; font-weight: 600; }
 .appointments-add-patient-panel { width: min(420px, calc(100vw - 28px)); }
 .appointments-form-error { margin: 0; padding: 8px 10px; border-radius: 8px; background: rgb(239 68 68 / .08); color: var(--cf-danger); font-size: 12px; }@media (max-width: 640px) { .appointments-header { align-items: flex-start; flex-direction: column; }.appointments-toolbar { flex-wrap: wrap; }.appointments-toolbar label { order: 2; max-width: none; flex-basis: 100%; margin-left: 0; }.appointment-table article { align-items: flex-start; flex-wrap: wrap; gap: 8px; }.appointment-time { width: 92px; }.appointment-person { min-width: calc(100% - 100px); }.appointment-actions { margin-left: auto; }.appointment-form-grid { grid-template-columns: 1fr; } }

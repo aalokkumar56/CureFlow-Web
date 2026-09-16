@@ -1,6 +1,11 @@
 export type Permission =
   typeof PERMISSIONS[keyof typeof PERMISSIONS]
 export const PERMISSIONS = {
+  LeadView: "Lead.View",
+  LeadCreate: "Lead.Create",
+  LeadEdit: "Lead.Edit",
+  LeadDelete: "Lead.Delete",
+  LeadConvert: "Lead.Convert",
   PatientView: "Patient.View",
   PatientCreate: "Patient.Create",
   PatientEdit: "Patient.Edit",
@@ -62,6 +67,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     PERMISSIONS.StaffView,
   ],
   marketing: [
+    PERMISSIONS.LeadView, PERMISSIONS.LeadCreate, PERMISSIONS.LeadEdit,
     PERMISSIONS.DashboardView, PERMISSIONS.PatientView,
     PERMISSIONS.CampaignView, PERMISSIONS.CampaignManage,
     PERMISSIONS.WhatsAppView, PERMISSIONS.WhatsAppSend,
@@ -121,6 +127,11 @@ export const hasPermission = (
 export const formatRole = (role: string | null | undefined) => ROLE_LABELS[normalizeRole(role)] || role || "—";
 
 export const PERMISSION_LABELS = {
+  [PERMISSIONS.LeadView]: "View leads",
+  [PERMISSIONS.LeadCreate]: "Create and import leads",
+  [PERMISSIONS.LeadEdit]: "Edit leads",
+  [PERMISSIONS.LeadDelete]: "Delete leads",
+  [PERMISSIONS.LeadConvert]: "Convert leads by booking an appointment",
   [PERMISSIONS.PatientView]: "View patients",
   [PERMISSIONS.PatientCreate]: "Create patients",
   [PERMISSIONS.PatientEdit]: "Edit patients",

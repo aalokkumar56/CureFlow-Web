@@ -497,7 +497,7 @@ await useAsyncData(
               </div>
               <div>
                 <dt>Source</dt>
-                <dd>{{ patient.inquiry_source || '—' }}</dd>
+                <dd>{{ patient.source_lead_id ? 'Converted from lead' : patient.inquiry_source || '—' }}</dd>
               </div>
             </dl>
             <h3>Care notes</h3>

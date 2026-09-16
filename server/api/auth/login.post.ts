@@ -1,21 +1,18 @@
-import { readBody, setCookie, createError } from 'h3'
+import { readBody, createError, setResponseHeader } from 'h3'
+import { assertSessionOrigin, setSessionCookies } from '../../utils/session'
 import { backendBaseUrl, fetchBackend } from '../../utils/backend'
 
 export default defineEventHandler(async (event) => {
+  setResponseHeader(event, 'Cache-Control', 'no-store')
   const body = await readBody(event)
-  const response = await fetchBackend<{ access_token?: string }>(`${backendBaseUrl(event)}/auth/login`, { method: 'POST', body })
+  assertSessionOrigin(event)
+  const response = await fetchBackend<{ access_token: string; refresh_token: string; refresh_expires_at: string; user: unknown; tenant: unknown }>(`${backendBaseUrl(event)}/auth/login`, { method: 'POST', body, retry: 0 })
 
   if (!response.access_token) {
     throw createError({ statusCode: 502, statusMessage: 'Authentication token was not returned' })
   }
 
-  setCookie(event, 'cureflow_session', response.access_token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 8,
-    path: '/',
-  })
+  setSessionCookies(event, response)
 
-  return response
+  return { user: response.user, tenant: response.tenant }
 })

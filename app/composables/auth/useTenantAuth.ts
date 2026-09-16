@@ -1,6 +1,5 @@
 import { authStorage } from '~/utils/auth/storage'
 import type {
-  TenantLoginResponse,
   TenantSession,
   TenantUser,
 } from '~/types/auth'
@@ -29,63 +28,55 @@ export const useTenantAuth = () => {
   const initialize = async () => {
     if (!import.meta.client) return
 
-    token.value = authStorage.getToken()
-    user.value = authStorage.getUser()
-    tenant.value = authStorage.getTenant()
-
-    if (!token.value) {
-      loading.value = false
-      return
-    }
-
-    // Restore the cached session immediately; lifecycle pages explicitly refresh server state.
-    loading.value = false
+    authStorage.clear()
+    try { await refreshSession() }
+    catch { token.value = null; user.value = null; tenant.value = null }
+    finally { loading.value = false }
   }
 
   const login = async (
     credentials: Record<string, unknown>,
   ) => {
-    const response = await $fetch<TenantLoginResponse>('/api/auth/login', {
+    const response = await $fetch<TenantSession>('/api/auth/login', {
       method: 'POST',
       body: credentials,
       credentials: 'include',
     })
 
-    if (!response.access_token) {
-      throw new Error(
-        'Authentication token was not returned by the server',
-      )
-    }
-
-    token.value = response.access_token
+    token.value = 'cookie-session'
     user.value = response.user
     tenant.value = response.tenant
 
-    authStorage.setSession(
-      response.access_token,
-      response.user,
-      response.tenant,
-    )
+    authStorage.clear()
+    loading.value = false
 
     return response
   }
 
   const refreshSession = async () => {
-    const session = await $fetch<TenantSession>('/api/auth/session', { credentials: 'include' })
+    const event = import.meta.server ? useRequestEvent() : undefined
+    const headers = import.meta.server ? useRequestHeaders(['cookie']) : undefined
+    const response = await $fetch.raw<TenantSession>('/api/auth/session', { credentials: 'include', headers })
+    if (import.meta.server && event) {
+      const { appendResponseHeader } = await import('h3')
+      for (const cookie of response.headers.getSetCookie()) appendResponseHeader(event, 'set-cookie', cookie)
+    }
+    const session = response._data!
     user.value = session.user
     tenant.value = session.tenant
-    if (token.value && token.value !== 'cookie-session') authStorage.setSession(token.value, session.user, session.tenant)
+    token.value = 'cookie-session'
+    loading.value = false
     return session
   }
 
   const logout = async (redirect = true) => {
+    if (import.meta.client) await $fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
     token.value = null
     user.value = null
     tenant.value = null
 
     authStorage.clear()
     if (import.meta.client) {
-      await $fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => undefined)
       for (const key of ['dashboard-overview', 'tenant-patient-total', 'notifications-unread-count', 'notifications-items']) clearNuxtState(key)
     }
 
