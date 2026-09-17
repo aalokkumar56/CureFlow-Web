@@ -98,3 +98,19 @@ export const platformLogout = () => {
     localStorage.removeItem(PLATFORM_TOKEN_KEY)
   }
 }
+
+export const platformGet = async <T = unknown>(
+  path: string,
+  params?: Record<string, unknown>,
+) => {
+  const response = await createPlatformClient().get<T>(path, { params })
+  return response.data
+}
+
+export const platformPatch = async <T = unknown>(
+  path: string,
+  data?: unknown,
+) => {
+  const response = await createPlatformClient().patch<T>(path, data)
+  return response.data
+}

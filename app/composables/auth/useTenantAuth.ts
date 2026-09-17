@@ -1,107 +1,10 @@
-// import { authStorage } from '~/utils/auth/storage'
-// import type { TenantLoginResponse, TenantSession} from '~/types/auth'
-
-// export const useTenantAuth = () => {
-
-//   const token = useState<string | null>('tenant-auth-token', () => null)
-//   const user = useState<any | null>('tenant-auth-user', () => null)
-//   const tenant = useState<any | null>('tenant-auth-tenant', () => null)
-//   const loading = useState('tenant-auth-loading', () => true)
-
-//   const { $api } = useNuxtApp()
-
-//   const initialize = async () => {
-//     if (!import.meta.client) return
-
-//     token.value = authStorage.getToken()
-//     user.value = authStorage.getUser()
-//     tenant.value = authStorage.getTenant()
-
-//     if (!token.value) {
-//       loading.value = false
-//       return
-//     }
-
-//     try {
-//       const session = await $api.get<TenantSession>('/auth/session')
-
-//       if (session) {
-//         user.value = session.user ?? session
-//         tenant.value = session.tenant ?? tenant.value
-
-//         authStorage.setSession(
-//           token.value,
-//           user.value,
-//           tenant.value,
-//         )
-//       }
-//     } catch {
-//       logout(false)
-//     } finally {
-//       loading.value = false
-//     }
-//   }
-
-//   const login = async (credentials: Record<string, unknown>) => {
-//     const response = await $api.post<TenantLoginResponse>('/auth/login', credentials)
-
-//     const sessionToken = response.access_token
-//     const sessionUser = response.user
-//     const sessionTenant = response.tenant
-
-//     if (!sessionToken) {
-//       throw new Error('Authentication token was not returned by the server')
-//     }
-
-//     token.value = sessionToken
-//     user.value = sessionUser ?? null
-//     tenant.value = sessionTenant ?? null
-
-//     authStorage.setSession(
-//       sessionToken,
-//       sessionUser,
-//       sessionTenant,
-//     )
-
-//     return response
-//   }
-
-//   const logout = (redirect = true) => {
-//     token.value = null
-//     user.value = null
-//     tenant.value = null
-
-//     authStorage.clear()
-
-//     if (redirect && import.meta.client) {
-//       navigateTo('/login')
-//     }
-//   }
-
-//   const isAuthenticated = computed(() => !!token.value)
-
-//   return {
-//     token,
-//     user,
-//     tenant,
-//     loading,
-//     isAuthenticated,
-//     initialize,
-//     login,
-//     logout,
-//   }
-// }
-
 import { authStorage } from '~/utils/auth/storage'
 import type {
-  TenantLoginResponse,
   TenantSession,
   TenantUser,
 } from '~/types/auth'
 
 export const useTenantAuth = () => {
-  const { $api } = useNuxtApp()
-
   const token = useState<string | null>(
     'tenant-auth-token',
     () => null,
@@ -125,69 +28,57 @@ export const useTenantAuth = () => {
   const initialize = async () => {
     if (!import.meta.client) return
 
-    token.value = authStorage.getToken()
-    user.value = authStorage.getUser()
-    tenant.value = authStorage.getTenant()
-
-    if (!token.value) {
-      loading.value = false
-      return
-    }
-
-    try {
-      const session = await $api.get<TenantSession>(
-        '/auth/session',
-      )
-
-      user.value = session.user
-      tenant.value = session.tenant
-
-      authStorage.setSession(
-        token.value,
-        user.value,
-        tenant.value,
-      )
-    } catch {
-      logout(false)
-    } finally {
-      loading.value = false
-    }
+    authStorage.clear()
+    try { await refreshSession() }
+    catch { token.value = null; user.value = null; tenant.value = null }
+    finally { loading.value = false }
   }
 
   const login = async (
     credentials: Record<string, unknown>,
   ) => {
-    const response =
-      await $api.post<TenantLoginResponse>(
-        '/auth/login',
-        credentials,
-      )
+    const response = await $fetch<TenantSession>('/api/auth/login', {
+      method: 'POST',
+      body: credentials,
+      credentials: 'include',
+    })
 
-    if (!response.access_token) {
-      throw new Error(
-        'Authentication token was not returned by the server',
-      )
-    }
-
-    token.value = response.access_token
+    token.value = 'cookie-session'
     user.value = response.user
     tenant.value = response.tenant
 
-    authStorage.setSession(
-      response.access_token,
-      response.user,
-      response.tenant,
-    )
+    authStorage.clear()
+    loading.value = false
 
     return response
   }
 
-  const logout = (redirect = true) => {
+  const refreshSession = async () => {
+    const event = import.meta.server ? useRequestEvent() : undefined
+    const headers = import.meta.server ? useRequestHeaders(['cookie']) : undefined
+    const response = await $fetch.raw<TenantSession>('/api/auth/session', { credentials: 'include', headers })
+    if (import.meta.server && event) {
+      const { appendResponseHeader } = await import('h3')
+      for (const cookie of response.headers.getSetCookie()) appendResponseHeader(event, 'set-cookie', cookie)
+    }
+    const session = response._data!
+    user.value = session.user
+    tenant.value = session.tenant
+    token.value = 'cookie-session'
+    loading.value = false
+    return session
+  }
+
+  const logout = async (redirect = true) => {
+    if (import.meta.client) await $fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
     token.value = null
     user.value = null
     tenant.value = null
 
     authStorage.clear()
+    if (import.meta.client) {
+      for (const key of ['dashboard-overview', 'tenant-patient-total', 'notifications-unread-count', 'notifications-items']) clearNuxtState(key)
+    }
 
     if (redirect && import.meta.client) {
       navigateTo('/login')
@@ -205,6 +96,7 @@ export const useTenantAuth = () => {
     loading,
     isAuthenticated,
     initialize,
+    refreshSession,
     login,
     logout,
   }

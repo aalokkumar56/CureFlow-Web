@@ -1,4 +1,5 @@
 export interface ApiClient {
+  download(url: string): Promise<Blob>
   get<T = unknown>(
     url: string,
     params?: Record<string, unknown>,

@@ -1,9 +1,9 @@
-export default defineNuxtRouteMiddleware(() => {
+export default defineNuxtRouteMiddleware((to) => {
+  if (import.meta.server) return
   const auth = useTenantAuth()
-  const route = useRoute()
 
   const tenant = auth.tenant.value
-  const pathname = route.path
+  const pathname = to.path
 
   if (!tenant) {
     return
@@ -49,7 +49,7 @@ export default defineNuxtRouteMiddleware(() => {
     path =>
       pathname === path ||
       pathname.startsWith(`${path}/`),
-  )
+  ) || (pathname === '/settings' && ['hospital', 'integrations'].includes(String(to.query.section || 'hospital')))
 
   const allowedDuringLifecycle =
     onLifecyclePage ||

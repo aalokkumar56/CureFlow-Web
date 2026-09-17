@@ -9,6 +9,7 @@ const STATUS_MESSAGES = {
 } as const
 
 interface ApiErrorResponse {
+  data?: ApiErrorResponse
   error?: string
   detail?: string
   title?: string
@@ -27,7 +28,10 @@ export const normalizeApiError = (
   }
 
   const status = error.response?.status
-  const data = error.response?.data as ApiErrorResponse | string | undefined
+  const responseData = error.response?.data as ApiErrorResponse | string | undefined
+  const data = responseData && typeof responseData === 'object' && responseData.data
+    ? responseData.data
+    : responseData
 
   if (status === 403 && typeof data !== 'string') {
     if (data?.error === 'tenant_pending_approval') {
@@ -55,6 +59,8 @@ export const normalizeApiError = (
       }
     }
 
+    if (typeof data !== 'string' && (data?.detail || data?.error || data?.message))
+      return data.detail || data.error || data.message || STATUS_MESSAGES[422]
     return STATUS_MESSAGES[422]
   }
 

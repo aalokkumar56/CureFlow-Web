@@ -5,28 +5,36 @@ import { incrementGlobalLoader, decrementGlobalLoader } from '~/utils/api/loader
 import { keysToSnakeCase } from '~/utils/api/transform'
 
 export default defineNuxtPlugin((nuxtApp) => {
-  const config = useRuntimeConfig()
-  const apiBaseUrl = String(
-    config.public.apiBaseUrl || 'https://localhost:7180/api',
-  ).replace(/\/+$/, '')
+  // Tenant requests must pass through Nuxt so refresh tokens never reach JS.
+  const configuredApiBaseUrl = '/api/bff'
+  const apiBaseUrl = configuredApiBaseUrl.startsWith('/') && import.meta.server
+    ? `${useRequestURL().origin}${configuredApiBaseUrl}`
+    : configuredApiBaseUrl
 
   const apiClient: AxiosInstance = axios.create({
     baseURL: apiBaseUrl,
+    timeout: 15000,
     headers: {
       'Content-Type': 'application/json',
     },
   })
 
   apiClient.interceptors.request.use((request) => {
-    const token = authStorage.getToken()
-
-    if (token) {
-      request.headers.Authorization = `Bearer ${token}`
+    request.headers['X-Request-Id'] = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`
+    const isFormData =
+      typeof FormData !== 'undefined' && request.data instanceof FormData
+    if (isFormData) {
+      request.headers?.delete?.('Content-Type')
+      request.headers?.delete?.('content-type')
+    }
+    if (import.meta.server) {
+      const cookie = useRequestHeaders(['cookie']).cookie
+      if (cookie) request.headers.Cookie = cookie
     }
 
     if (
       request.data &&
-      !(request.data instanceof FormData) &&
+      !isFormData &&
       typeof request.data === 'object'
     ) {
       request.data = keysToSnakeCase(request.data)
@@ -47,6 +55,12 @@ export default defineNuxtPlugin((nuxtApp) => {
 
       if (error.response?.status === 401 && import.meta.client) {
         authStorage.clear()
+        nuxtApp.runWithContext(() => {
+          const auth = useTenantAuth()
+          auth.token.value = null
+          auth.user.value = null
+          auth.tenant.value = null
+        })
 
         if (window.location.pathname !== '/login') {
           await nuxtApp.runWithContext(() => navigateTo('/login'))
@@ -58,6 +72,10 @@ export default defineNuxtPlugin((nuxtApp) => {
   )
 
   const api = {
+    download: async (url: string): Promise<Blob> => {
+      const response = await apiClient.get<Blob>(url, { responseType: 'blob' })
+      return response.data
+    },
     get: async <T = unknown>(
       url: string,
       params?: Record<string, unknown>,

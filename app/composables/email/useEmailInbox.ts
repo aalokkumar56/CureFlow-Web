@@ -1,0 +1,17 @@
+import { normalizeApiError } from '~/utils/api/errors'
+import type { EmailMessage, EmailStatus, EmailThread, EmailThreadDetail } from '~/utils/email'
+export const useEmailInbox = () => {
+  const { $api } = useNuxtApp(); const threads = ref<EmailThread[]>([]); const status = ref<EmailStatus | null>(null); const selectedPatientId = ref(''); const detail = ref<EmailThreadDetail | null>(null); const search = ref(''); const loading = ref(false); const detailLoading = ref(false); const sending = ref(false); const error = ref(''); let request = 0
+  const loadThreads = async (background = false) => { const current = ++request; if (!background) loading.value = true; error.value = ''; try { const result = await $api.get<{ threads?: EmailThread[]; status?: EmailStatus }>('/email/threads', { q: search.value || undefined, limit: 100 }); if (current === request) { threads.value = result.threads || []; status.value = result.status || null; if (selectedPatientId.value && !threads.value.some(item => item.patient_id === selectedPatientId.value)) { selectedPatientId.value = '' } } } catch (cause) { if (current === request) error.value = normalizeApiError(cause, 'Email threads could not be loaded.') } finally { if (!background) loading.value = false } }
+  const selectThread = async (patientId: string) => { selectedPatientId.value = patientId; detailLoading.value = true; try { detail.value = await $api.get<EmailThreadDetail>(`/email/threads/${encodeURIComponent(patientId)}`) } catch (cause) { error.value = normalizeApiError(cause, 'Email thread could not be loaded.'); detail.value = null } finally { detailLoading.value = false } }
+  const send = async (subject: string, body: string) => { if (!selectedPatientId.value) return; sending.value = true; try { await $api.post('/email/send', { patientId: selectedPatientId.value, subject: subject || 'Message from Cure & Care Hospital', body }); await selectThread(selectedPatientId.value); await loadThreads(true) } finally { sending.value = false } }
+  watch(search, () => loadThreads())
+  onMounted(() => {
+    void loadThreads()
+    const refreshWhenVisible = () => { if (document.visibilityState === 'visible') void loadThreads(true) }
+    const timer = window.setInterval(refreshWhenVisible, 15000)
+    document.addEventListener('visibilitychange', refreshWhenVisible)
+    onBeforeUnmount(() => { window.clearInterval(timer); document.removeEventListener('visibilitychange', refreshWhenVisible) })
+  })
+  return { threads, status, selectedPatientId, detail, search, loading, detailLoading, sending, error, loadThreads, selectThread, send }
+}

@@ -1,18 +1,15 @@
 export default defineNuxtRouteMiddleware(async () => {
-  // Tenant sessions intentionally live in localStorage to preserve the legacy
-  // auth contract. They are unavailable during SSR, so enforcing this guard on
-  // the server would redirect a valid browser session before hydration.
-  if (import.meta.server) {
-    return
-  }
-
   const auth = useTenantAuth()
 
-  if (auth.loading.value) {
-    await auth.initialize()
-  }
-
-  if (!auth.isAuthenticated.value) {
-    return navigateTo('/login')
+  try {
+    await auth.refreshSession()
+  } catch {
+    auth.token.value = null
+    auth.user.value = null
+    auth.tenant.value = null
+      // Any failed session validation must end in the login flow. This avoids
+      // exposing an internal validation error page for expired or unavailable
+      // sessions and guarantees a clean authentication state.
+      return navigateTo('/login')
   }
 })

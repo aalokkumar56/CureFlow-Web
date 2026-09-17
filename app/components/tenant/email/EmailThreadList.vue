@@ -1,0 +1,6 @@
+<script setup lang="ts">
+import { PhMagnifyingGlass } from '@phosphor-icons/vue'
+import type { EmailThread } from '~/utils/email'
+const props = defineProps<{ threads: EmailThread[]; selectedId: string; search: string; loading: boolean }>(); const emit = defineEmits<{ 'update:search': [value: string]; select: [id: string] }>()
+</script>
+<template><aside class="email-thread-list"><div class="email-thread-search"><PhMagnifyingGlass :size="16" /><input :value="props.search" placeholder="Search email threads…" @input="emit('update:search', ($event.target as HTMLInputElement).value)" /></div><div class="email-thread-scroll"><div v-if="props.loading" class="email-empty">Loading threads…</div><div v-else-if="!props.threads.length" class="email-empty">No email threads yet.</div><button v-for="thread in props.threads" :key="thread.patient_id" type="button" class="email-thread-item" :class="{ active: props.selectedId === thread.patient_id }" @click="emit('select', thread.patient_id)"><strong>{{ thread.patient_name || 'Unknown patient' }}</strong><small>{{ thread.to_email || 'No email recorded' }}</small><span>{{ thread.last_preview || 'No messages yet' }}</span><b v-if="thread.unread_count">{{ thread.unread_count }}</b></button></div></aside></template>

@@ -17,7 +17,7 @@ const submit = async () => {
     const status = String(tenant?.lifecycle_status ?? tenant?.lifecycleStatus ?? '').toLowerCase().replace(/_/g, '')
     await router.push(status === 'pendingapproval' ? '/pending-approval' : status === 'active' && !(tenant?.onboarding_complete ?? tenant?.onboardingComplete) ? '/onboarding' : '/')
   } catch (error) {
-    errorMessage.value = normalizeApiError(error, 'Registration failed')
+    errorMessage.value = normalizeApiError(error, 'Registration failed.')
   }
 }
 </script>
