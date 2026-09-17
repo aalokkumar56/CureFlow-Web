@@ -1255,3 +1255,6 @@
     display: none;
   }
 }
+.patient-sort-button { display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-transform: inherit; cursor: pointer; text-align: left; }
+.patient-sort-button:focus-visible { outline: 2px solid var(--cf-primary); outline-offset: 4px; border-radius: 3px; }
+.patients-table th[aria-sort="ascending"], .patients-table th[aria-sort="descending"] { color: var(--cf-primary); }

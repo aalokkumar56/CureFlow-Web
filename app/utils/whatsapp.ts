@@ -54,6 +54,17 @@ export const formatMessageStatus = (status?: string) =>
     ? status.replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase())
     : ''
 
+export const messageStatusSymbol = (status?: string) => {
+  switch (String(status || '').toLowerCase()) {
+    case 'pending': return '◷'
+    case 'sent': return '✓'
+    case 'delivered': return '✓✓'
+    case 'read': return '✓✓'
+    case 'failed': return '⚠'
+    default: return ''
+  }
+}
+
 export const formatBytes = (value?: number) => {
   const bytes = Number(value || 0)
   if (!bytes || Number.isNaN(bytes)) return ''

@@ -35,6 +35,9 @@
 .whatsapp-chat-panel.is-embedded .whatsapp-message-bubble p { margin-top: 5px; }
 .whatsapp-chat-panel.is-embedded .whatsapp-message { margin-bottom: 8px; }
 .whatsapp-message-bubble footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; color: var(--cf-text-muted); font-size: 10px; }
+.whatsapp-message-status { font-weight: 700; letter-spacing: -2px; }
+.whatsapp-message-status.status-read { color: #1d8cf8; }
+.whatsapp-message-status.status-failed { color: #d93025; letter-spacing: 0; }
 .whatsapp-composer { padding: 12px; border-top: 1px solid var(--cf-border); background: white; }
 .whatsapp-composer-row { display: flex; align-items: flex-end; gap: 8px; }
 .whatsapp-icon-button, .whatsapp-send-button { display: grid; width: 38px; min-width: 38px; height: 38px; place-items: center; }

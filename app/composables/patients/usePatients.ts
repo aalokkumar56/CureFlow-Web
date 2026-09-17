@@ -15,6 +15,7 @@ export interface PatientRecord {
   tags?: string[]
   created_at?: string
   last_contact_at?: string
+  next_appointment_at?: string | null
   follow_up_date?: string
   date_of_birth?: string
   notes?: string
@@ -46,6 +47,8 @@ export const usePatients = () => {
     pageSize = 10,
     department = 'all',
     source = 'all',
+    sortBy = 'name',
+    sortDirection = 'asc',
   ) => {
     const current = ++request
     loading.value = true
@@ -58,6 +61,8 @@ export const usePatients = () => {
         inquiry_source: source === 'all' ? undefined : source,
         page,
         page_size: pageSize,
+        sort_by: sortBy,
+        sort_direction: sortDirection,
       })
       if (current !== request) return
       patients.value = patientList<PatientRecord>(result)

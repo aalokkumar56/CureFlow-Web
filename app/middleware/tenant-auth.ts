@@ -3,11 +3,13 @@ export default defineNuxtRouteMiddleware(async () => {
 
   try {
     await auth.refreshSession()
-  } catch (error: any) {
+  } catch {
     auth.token.value = null
     auth.user.value = null
     auth.tenant.value = null
-    if (error.statusCode === 401 || error.status === 401) return navigateTo('/login')
-    throw createError({ statusCode: 503, statusMessage: 'Unable to validate your session. Please retry.' })
+      // Any failed session validation must end in the login flow. This avoids
+      // exposing an internal validation error page for expired or unavailable
+      // sessions and guarantees a clean authentication state.
+      return navigateTo('/login')
   }
 })

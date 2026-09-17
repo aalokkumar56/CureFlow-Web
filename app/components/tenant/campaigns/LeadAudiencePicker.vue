@@ -1,89 +1,128 @@
 <script setup lang="ts">
-import { useLeads, type Lead } from '~/composables/leads/useLeads'
-import { normalizeApiError } from '~/utils/api/errors'
-const selectedIds = defineModel<string[]>({ default: () => [] })
-const allSelected = defineModel<boolean>('allSelected', { default: false })
-const { list } = useLeads()
-const search = ref('')
-const page = ref(1)
-const rows = ref<Lead[]>([])
-const selected = ref<Lead[]>([])
-const total = ref(0)
-const loading = ref(false)
-const error = ref('')
-const open = ref(false)
-let request = 0
-let timer: ReturnType<typeof setTimeout> | undefined
+import { useLeads, type Lead } from "~/composables/leads/useLeads";
+import { normalizeApiError } from "~/utils/api/errors";
+const selectedIds = defineModel<string[]>({ default: () => [] });
+const allSelected = defineModel<boolean>("allSelected", { default: false });
+const { list, $api } = useLeads();
+const search = ref("");
+const page = ref(1);
+const rows = ref<Lead[]>([]);
+const selected = ref<Lead[]>([]);
+const displayedSelection = computed(() =>
+  selectedIds.value.map((id) => ({
+    id,
+    label:
+      selected.value.find((lead) => lead.id === id)?.name ||
+      rows.value.find((lead) => lead.id === id)?.name ||
+      `Lead (${id})`,
+    phone:
+      selected.value.find((lead) => lead.id === id)?.phone ||
+      rows.value.find((lead) => lead.id === id)?.phone,
+  })),
+);
+let selectionRequest = 0;
+const total = ref(0);
+const loading = ref(false);
+const error = ref("");
+const open = ref(false);
+let request = 0;
+let timer: ReturnType<typeof setTimeout> | undefined;
 const load = async () => {
-  const current = ++request
-  loading.value = true
-  error.value = ''
+  const current = ++request;
+  loading.value = true;
+  error.value = "";
   try {
     const result = await list({
       q: search.value,
       page: page.value,
       page_size: 25,
-      status: 'active',
-    })
-    if (current !== request) return
-    rows.value = result.items
-    total.value = result.total
+      status: "active",
+    });
+    if (current !== request) return;
+    rows.value = result.items;
+    total.value = result.total;
   } catch (cause) {
     if (current === request)
-      error.value = normalizeApiError(cause, 'Leads could not be loaded.')
+      error.value = normalizeApiError(cause, "Leads could not be loaded.");
   } finally {
-    if (current === request) loading.value = false
+    if (current === request) loading.value = false;
   }
-}
+};
 const toggle = (lead: Lead) => {
-  if (allSelected.value) allSelected.value = false
+  if (allSelected.value) allSelected.value = false;
   selected.value = selectedIds.value.includes(lead.id)
     ? selected.value.filter((item) => item.id !== lead.id)
-    : [...selected.value, lead]
-  selectedIds.value = selected.value.map((item) => item.id)
-}
+    : [...selected.value, lead];
+  selectedIds.value = selectedIds.value.includes(lead.id)
+    ? selectedIds.value.filter((id) => id !== lead.id)
+    : [...selectedIds.value, lead.id];
+};
 const selectAll = () => {
-  allSelected.value = true
-  selectedIds.value = []
-  selected.value = []
-}
+  allSelected.value = true;
+  selectedIds.value = [];
+  selected.value = [];
+};
 const clearAll = () => {
-  allSelected.value = false
-}
+  allSelected.value = false;
+};
 const previousPage = () => {
-  if (page.value <= 1) return
-  page.value -= 1
-  load()
-}
+  if (page.value <= 1) return;
+  page.value -= 1;
+  load();
+};
 const nextPage = () => {
-  if (page.value * 25 >= total.value) return
-  page.value += 1
-  load()
-}
+  if (page.value * 25 >= total.value) return;
+  page.value += 1;
+  load();
+};
 watch(search, () => {
-  request++
-  clearTimeout(timer)
+  request++;
+  clearTimeout(timer);
   timer = setTimeout(() => {
-    page.value = 1
-    load()
-  }, 300)
-})
+    page.value = 1;
+    load();
+  }, 300);
+});
 watch(open, (value) => {
-  if (value) load()
-})
-watch(selectedIds, (ids) => {
-  selected.value = selected.value.filter((lead) => ids.includes(lead.id))
-})
+  if (value) load();
+});
+watch(
+  selectedIds,
+  async (ids) => {
+    const current = ++selectionRequest;
+    selected.value = selected.value.filter((lead) => ids.includes(lead.id));
+    const missing = ids.filter(
+      (id) => !selected.value.some((lead) => lead.id === id),
+    );
+    const details = await Promise.allSettled(
+      missing.map((id) =>
+        $api.get<{ lead: Lead }>(`/leads/${encodeURIComponent(id)}`),
+      ),
+    );
+    if (current !== selectionRequest) return;
+    for (const result of details) {
+      if (
+        result.status === "fulfilled" &&
+        result.value.lead &&
+        selectedIds.value.includes(result.value.lead.id)
+      ) {
+        selected.value.push(result.value.lead);
+      }
+    }
+  },
+  { immediate: true },
+);
 watch(allSelected, (value) => {
   if (value) {
-    selectedIds.value = []
-    selected.value = []
+    selectedIds.value = [];
+    selected.value = [];
   }
-})
+});
 onScopeDispose(() => {
-  request++
-  clearTimeout(timer)
-})
+  selectionRequest++;
+  request++;
+  clearTimeout(timer);
+});
 </script>
 
 <template>
@@ -97,24 +136,35 @@ onScopeDispose(() => {
     >
       {{
         allSelected
-          ? 'All active leads selected'
+          ? "All active leads selected"
           : selectedIds.length
-          ? `${selectedIds.length} leads selected`
-          : 'Select leads'
+            ? `${selectedIds.length} leads selected`
+            : "Select leads"
       }}<small>Search and select multiple leads</small>
     </button>
     <div v-if="allSelected" class="campaign-audience-result">
       All active leads will be included, filtered by gender.
       <button type="button" @click="clearAll">Clear selection</button>
     </div>
-    <div v-else-if="selected.length" class="campaign-selected-patients">
+    <button
+      v-if="!allSelected && selectedIds.length"
+      type="button"
+      @click="selectedIds = []"
+    >
+      Clear selected leads
+    </button>
+    <div
+      v-if="!allSelected && displayedSelection.length"
+      class="campaign-selected-patients"
+    >
       <button
-        v-for="lead in selected"
+        v-for="lead in displayedSelection"
         :key="lead.id"
         type="button"
-        @click="toggle(lead)"
+        @click="selectedIds = selectedIds.filter((id) => id !== lead.id)"
       >
-        {{ lead.name || 'Unnamed lead' }} ({{ lead.phone }}) ×
+        {{ lead.label
+        }}<template v-if="lead.phone"> ({{ lead.phone }})</template> ×
       </button>
     </div>
     <div v-if="open" class="campaign-patient-dropdown">
@@ -123,8 +173,17 @@ onScopeDispose(() => {
         placeholder="Search leads by name or phone"
         aria-label="Search leads"
       />
-      <div class="campaign-pills lead-picker-actions" role="group" aria-label="Bulk lead selection">
-        <button v-if="!allSelected" type="button" class="selected" @click="selectAll">
+      <div
+        class="campaign-pills lead-picker-actions"
+        role="group"
+        aria-label="Bulk lead selection"
+      >
+        <button
+          v-if="!allSelected"
+          type="button"
+          class="selected"
+          @click="selectAll"
+        >
           Select all active leads
         </button>
         <button v-else type="button" @click="clearAll">Clear all leads</button>
@@ -145,7 +204,7 @@ onScopeDispose(() => {
               :checked="selectedIds.includes(lead.id)"
               @change="toggle(lead)"
             /><span
-              >{{ lead.name || 'Unnamed lead' }} ({{ lead.phone }})</span
+              >{{ lead.name || "Unnamed lead" }} ({{ lead.phone }})</span
             ></label
           ></template
         >

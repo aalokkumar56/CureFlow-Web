@@ -10,12 +10,7 @@ import {
   usePatients,
   type PatientRecord,
 } from '~/composables/patients/usePatients'
-import {
-  collectAppointments,
-  nextPatientAppointments,
-} from '~/utils/patient-appointments'
 import { hospitalTimezone, hospitalTime } from '~/utils/tenant-time'
-import type { Appointment } from '~/composables/appointments/useAppointments'
 import {
   patientStatuses,
   patientSources,
@@ -25,7 +20,6 @@ import {
   downloadPatientCsv,
 } from '~/utils/patients'
 import { hasPermission, PERMISSIONS, isAdminRole } from '~/utils/permissions'
-import { normalizeApiError } from '~/utils/api/errors'
 definePageMeta({
   layout: 'tenant',
   middleware: ['tenant-auth', 'tenant-approval'],
@@ -59,9 +53,6 @@ const pageSize = computed(() =>
     ? Number(route.query.page_size)
     : 8,
 )
-const nextAppointments = ref<Record<string, Appointment>>({})
-const appointmentsLoading = ref(false)
-const appointmentsError = ref('')
 const canAppointments = computed(() =>
   hasPermission(auth.user.value, PERMISSIONS.AppointmentView),
 )
@@ -69,6 +60,23 @@ const canEdit = computed(() =>
   hasPermission(auth.user.value, PERMISSIONS.PatientEdit),
 )
 const timezone = computed(() => hospitalTimezone(auth.tenant.value))
+const columns = computed(() => [
+  { key: 'name', label: 'Patient' },
+  { key: 'phone', label: 'Contact' },
+  { key: 'department', label: 'Department' },
+  { key: 'status', label: 'Status' },
+  { key: 'inquiry_source', label: 'Source' },
+  { key: 'last_contact_at', label: 'Last contact' },
+  ...(canAppointments.value ? [{ key: 'next_appointment', label: 'Next appointment' }] : []),
+])
+const sortBy = computed(() => columns.value.some(c => c.key === route.query.sort_by) ? String(route.query.sort_by) : 'name')
+const sortDirection = computed(() => route.query.sort_direction === 'desc' ? 'desc' : 'asc')
+const sort = (key: string) => router.replace({ query: {
+  ...route.query,
+  page: undefined,
+  sort_by: key,
+  sort_direction: sortBy.value === key && sortDirection.value === 'asc' ? 'desc' : 'asc',
+} })
 let timer: ReturnType<typeof setTimeout> | undefined
 const refresh = async () => {
   selected.value = null
@@ -80,41 +88,21 @@ const refresh = async () => {
     pageSize.value,
     department.value,
     source.value,
+    sortBy.value,
+    sortDirection.value,
   )
   patientTotal.value = error.value ? null : pagination.value.total
   if (!error.value && page.value > pagination.value.totalPages)
     await filter('page', String(pagination.value.totalPages))
 }
-const loadUpcomingAppointments = async () => {
-  if (import.meta.server) return
-  if (!canView.value || !canAppointments.value || appointmentsLoading.value)
-    return
-  appointmentsLoading.value = true
-  appointmentsError.value = ''
-  try {
-    const from = new Date().toISOString()
-    const rows = await collectAppointments((page) =>
-      $api.get('/appointments', { from, page, page_size: 100 }),
-    )
-    nextAppointments.value = nextPatientAppointments(rows)
-  } catch (cause) {
-    nextAppointments.value = {}
-    appointmentsError.value = normalizeApiError(
-      cause,
-      'Upcoming appointments could not be loaded.',
-    )
-  } finally {
-    appointmentsLoading.value = false
-  }
-}
 const nextAppointmentDate = (patient: PatientRecord) =>
   patientDate(
-    nextAppointments.value[String(patient.id)]?.scheduled_at,
+    patient.next_appointment_at || undefined,
     timezone.value,
   )
 const nextAppointmentTime = (patient: PatientRecord) =>
   hospitalTime(
-    nextAppointments.value[String(patient.id)]?.scheduled_at,
+    patient.next_appointment_at || undefined,
     timezone.value,
   )
 const filter = (key: string, value: string) =>
@@ -167,7 +155,7 @@ await useAsyncData(
   `patients-directory-${auth.tenant.value?.id || 'current'}-${route.fullPath}`,
   async () => {
     if (route.query.new === '1' && canCreate.value) return null
-    await Promise.allSettled([refresh(), loadUpcomingAppointments(), loadDepartments()])
+    await Promise.allSettled([refresh(), loadDepartments()])
     return patients.value
   },
   { lazy: true },
@@ -258,10 +246,6 @@ onMounted(async () => {
           {{ error }}
           <button class="patients-secondary-btn" @click="refresh">Retry</button>
         </p>
-        <p v-if="appointmentsError" class="appointments-error" role="alert">
-          {{ appointmentsError }}
-          <button @click="loadUpcomingAppointments">Retry appointments</button>
-        </p>
         <div
           class="patients-workbench"
           :class="{ 'preview-visible': selected }"
@@ -275,13 +259,11 @@ onMounted(async () => {
               <table class="patients-table">
                 <thead>
                   <tr>
-                    <th scope="col">Patient</th>
-                    <th scope="col">Contact</th>
-                    <th scope="col">Department</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Source</th>
-                    <th scope="col">Last contact</th>
-                    <th v-if="canAppointments" scope="col">Next appointment</th>
+                    <th v-for="column in columns" :key="column.key" scope="col" :aria-sort="sortBy === column.key ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'">
+                      <button type="button" class="patient-sort-button" :aria-label="`Sort ${column.label} ${sortBy === column.key && sortDirection === 'asc' ? 'descending' : 'ascending'}`" @click="sort(column.key)">
+                        {{ column.label }} <span aria-hidden="true">{{ sortBy === column.key ? (sortDirection === 'asc' ? '↑' : '↓') : '↕' }}</span>
+                      </button>
+                    </th>
                     <th scope="col"><span class="sr-only">Preview</span></th>
                   </tr>
                 </thead>
@@ -327,12 +309,8 @@ onMounted(async () => {
                     </td>
                     <td>{{ patientDate(patient.last_contact_at) }}</td>
                     <td v-if="canAppointments">
-                      <span v-if="appointmentsLoading">Loading…</span>
-                      <span v-else-if="appointmentsError">Unavailable</span>
                       <template
-                        v-else-if="
-                          nextAppointments[String(patient.id)]?.scheduled_at
-                        "
+                        v-if="patient.next_appointment_at"
                       >
                         <strong>{{ nextAppointmentDate(patient) }}</strong>
                         <small class="patient-table-subtext">{{

@@ -3,7 +3,7 @@ import { PhPaperclip, PhPaperPlaneRight, PhX } from '@phosphor-icons/vue'
 import InboxMedia from './InboxMedia.vue'
 import { normalizeApiError } from '~/utils/api/errors'
 import { hasPermission, PERMISSIONS } from '~/utils/permissions'
-import { conversationName, formatBytes, formatMessageStatus, renderMessageTemplate, visibleTemplates, type WhatsAppConversation, type WhatsAppMessage, type WhatsAppTemplate } from '~/utils/whatsapp'
+import { conversationName, formatBytes, formatMessageStatus, messageStatusSymbol, renderMessageTemplate, visibleTemplates, type WhatsAppConversation, type WhatsAppMessage, type WhatsAppTemplate } from '~/utils/whatsapp'
 
 const props = withDefaults(defineProps<{
   conversationId?: string | number | null
@@ -33,8 +33,10 @@ const messageList = ref<HTMLElement | null>(null)
 const activeId = computed(() => props.conversationId || conversation.value?.id || null)
 const effectiveTemplates = computed(() => props.templates.length ? props.templates : loadedTemplates.value)
 
-const load = async (silent = false) => {
+let loadVersion = 0
+const load = async (silent = false, scrollToLatest = false) => {
   if (!activeId.value && !props.patientId) return
+  const version = ++loadVersion
   const wasNearBottom = !messageList.value ||
     messageList.value.scrollHeight - messageList.value.scrollTop - messageList.value.clientHeight < 80
   if (!silent) loading.value = true
@@ -42,14 +44,16 @@ const load = async (silent = false) => {
   try {
     const endpoint = activeId.value ? `/conversations/${activeId.value}` : `/conversations/patient/${props.patientId}`
     const result = await $api.get<{ conversation?: WhatsAppConversation; messages?: WhatsAppMessage[]; patient?: { name?: string } }>(endpoint)
+    if (version !== loadVersion) return
     conversation.value = result.conversation || null
     messages.value = result.messages || []
-    await nextTick()
-    if (messageList.value && wasNearBottom) messageList.value.scrollTop = messageList.value.scrollHeight
-  } catch (cause) {
-    error.value = normalizeApiError(cause, 'Conversation could not be loaded.')
-  } finally {
     if (!silent) loading.value = false
+    await nextTick()
+    if (messageList.value && (!silent || scrollToLatest || wasNearBottom)) messageList.value.scrollTop = messageList.value.scrollHeight
+  } catch (cause) {
+    if (version === loadVersion) error.value = normalizeApiError(cause, 'Conversation could not be loaded.')
+  } finally {
+    if (!silent && version === loadVersion) loading.value = false
   }
 }
 
@@ -79,7 +83,7 @@ const send = async () => {
     body.value = ''
     clearAttachment()
     selectedTemplate.value = ''
-    await load(true)
+    await load(true, true)
   } catch (cause) {
     error.value = normalizeApiError(cause, 'Message could not be sent.')
   } finally {
@@ -127,7 +131,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
             <div class="whatsapp-message-bubble">
               <InboxMedia v-if="message.media_url || message.mediaUrl" :url="String(message.media_url || message.mediaUrl)" :type="message.type" :file-name="String(message.file_name || message.fileName || '')" :size="Number(message.media_size || message.mediaSize || 0)" :outbound="message.direction === 'outbound'" />
               <p v-if="message.body || message.caption">{{ message.body || message.caption }}</p>
-              <footer>{{ message.created_at || message.sent_at ? new Date(String(message.created_at || message.sent_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '' }} <span v-if="message.direction === 'outbound'">{{ formatMessageStatus(message.status) }}</span></footer>
+              <footer>{{ message.created_at || message.sent_at ? new Date(String(message.created_at || message.sent_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '' }} <span v-if="message.direction === 'outbound' && message.status" class="whatsapp-message-status" :class="`status-${String(message.status).toLowerCase()}`" :title="formatMessageStatus(message.status)">{{ messageStatusSymbol(message.status) }}</span></footer>
             </div>
           </article>
         </template>

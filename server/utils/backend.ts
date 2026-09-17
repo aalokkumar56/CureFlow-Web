@@ -9,11 +9,11 @@ export const backendBaseUrl = (event: Parameters<typeof getHeader>[0]) => {
 
 export const backendAuthHeaders = async (event: Parameters<typeof getHeader>[0]) => {
   const authorization = getHeader(event, 'authorization')
+  if (authorization) return { Authorization: authorization }
   const { sessionAccessToken } = await import('./session')
   const session = await sessionAccessToken(event)
-  const platform = event.path.startsWith('/api/bff/platform/') ? authorization : undefined
-  return platform || session
-    ? { Authorization: platform || `Bearer ${session}` }
+  return session
+    ? { Authorization: `Bearer ${session}` }
     : undefined
 }
 
