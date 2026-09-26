@@ -34,6 +34,7 @@ type AppointmentColumn = {
   label: string
   items: Array<{
     id: string | number
+    patient_id?: string | number
     patient_name?: string
     doctor_name?: string
     department?: string
@@ -131,6 +132,17 @@ const appointmentColumns = computed<AppointmentColumn[]>(() =>
 )
 
 const canCreate = computed(() => hasPermission(auth.user.value, PERMISSIONS.AppointmentCreate))
+function openPatient(appointment: AppointmentColumn['items'][number]) {
+  if (!appointment.patient_id || activeDrag.value) return
+  return navigateTo({
+    path: `/patients/${encodeURIComponent(String(appointment.patient_id))}`,
+    query: {
+      tab: 'visit-chart',
+      ...(['scheduled', 'confirmed'].includes(appointment.status)
+        ? { appointment: String(appointment.id) } : {}),
+    },
+  })
+}
 
 const refreshAppointments = async () => {
   await load(range.value)
@@ -336,6 +348,7 @@ onMounted(async () => {
             draggable="true"
             @dragstart="onDragStart($event, appointment)"
             @dragend="onDragEnd()"
+            @click="openPatient(appointment)"
           >
             <div class="appointment-card-top">
               <strong>{{ appointment.patient_name || 'Patient' }}</strong>

@@ -300,6 +300,7 @@ onMounted(load)
           Print
         </button>
       </header>
+      <PatientsPrescriptionReadAloud :prescription="record" />
       <dl class="patient-record-values">
         <div
           v-for="field in fields.filter((field) => record[field.key])"

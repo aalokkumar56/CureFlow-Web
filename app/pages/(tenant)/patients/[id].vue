@@ -23,6 +23,7 @@ import {
   type Permission,
 } from '~/utils/permissions'
 import { normalizeApiError } from '~/utils/api/errors'
+import { prepareClinicalNavigation } from '~/utils/clinical-navigation'
 definePageMeta({
   layout: 'tenant',
   middleware: ['tenant-auth', 'tenant-approval'],
@@ -62,7 +63,6 @@ const tabs = computed(() => [
         { key: 'allergies', label: 'Allergies' },
         { key: 'prescriptions', label: 'Prescriptions' },
         { key: 'vitals', label: 'Vitals' },
-        { key: 'notes', label: 'Clinical notes' },
         { key: 'history', label: 'History' },
         { key: 'lifestyle', label: 'Lifestyle' },
         { key: 'documents', label: 'Documents' },
@@ -79,7 +79,7 @@ const activeTab = computed(() =>
     ? 'details'
     : tabs.value.some((tab) => tab.key === route.query.tab)
       ? String(route.query.tab)
-      : 'today',
+      : route.query.tab === 'notes' ? 'visit-chart' : 'today',
 )
 const tab = (key: string) =>
   router.replace({
@@ -260,7 +260,7 @@ async function startConsultation(appointment: Appointment) {
     await router.replace({
       query: {
         ...route.query,
-        tab: 'notes',
+        tab: 'visit-chart',
         edit: undefined,
         visit: result.id,
         appointment: String(appointment.id),
@@ -276,6 +276,7 @@ async function startConsultation(appointment: Appointment) {
 }
 async function completeConsultation() {
   if (!visitId.value || saving.value || !can(PERMISSIONS.ClinicalEdit)) return
+  if (!await prepareClinicalNavigation()) return
   saving.value = true
   error.value = ''
   try {
@@ -300,11 +301,9 @@ async function completeConsultation() {
     saving.value = false
   }
 }
-await useAsyncData(
-  `patient-profile-${auth.tenant.value?.id || 'current'}-${id}`,
-  async () => { await load(true); return patient.value },
-  { lazy: true },
-)
+// Load clinical context together on the client. A cached SSR patient payload
+// does not restore the local appointment/visit refs used to associate new notes.
+onMounted(() => { void load(true) })
 </script>
 <template>
   <section class="patients-page">
@@ -575,7 +574,7 @@ await useAsyncData(
       />
       <PatientsClinicalRecords
         v-else-if="
-          ['allergies', 'vitals', 'notes'].includes(activeTab) && canClinical
+          ['allergies', 'vitals'].includes(activeTab) && canClinical
         "
         :key="activeTab"
         :patient-id="id"
@@ -624,6 +623,8 @@ await useAsyncData(
         :key="activeTab"
         :patient-id="id"
         :kind="activeTab"
+        :visit-id="visitId"
+        :appointment-id="appointmentId"
       />
     </template>
   </section>

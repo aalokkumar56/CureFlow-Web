@@ -1,4 +1,5 @@
 import { authStorage } from '~/utils/auth/storage'
+import { prepareClinicalNavigation } from '~/utils/clinical-navigation'
 import type {
   TenantSession,
   TenantUser,
@@ -70,6 +71,7 @@ export const useTenantAuth = () => {
   }
 
   const logout = async (redirect = true) => {
+    if (import.meta.client && !await prepareClinicalNavigation()) return
     if (import.meta.client) await $fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
     token.value = null
     user.value = null
