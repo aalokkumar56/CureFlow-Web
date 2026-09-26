@@ -20,7 +20,7 @@ const filtered = computed(() => {
 })
 const columnItems = (id: string) => filtered.value.filter(task => followUpColumn(task) === id)
 const openCreate = () => { actionError.value = ''; modalOpen.value = true }
-const save = async () => { actionError.value = ''; try { await create(); modalOpen.value = false } catch (cause) { actionError.value = cause instanceof Error ? cause.message : normalizeApiError(cause, 'Follow-up could not be created.') } }
+const save = async () => { actionError.value = ''; try { await create(); modalOpen.value = false } catch (cause) { actionError.value = normalizeApiError(cause, 'Follow-up could not be created.') } }
 const complete = async (task: FollowUp) => { actionError.value = ''; try { await updateStatus(task.id, isFollowUpDone(task.status) ? 'pending' : 'done') } catch (cause) { actionError.value = normalizeApiError(cause, 'Follow-up could not be updated.') } }
 const removeTask = async (task: FollowUp) => { if (!window.confirm(`Delete “${task.title}”?`)) return; actionError.value = ''; try { await remove(task.id) } catch (cause) { actionError.value = normalizeApiError(cause, 'Follow-up could not be deleted.') } }
 const move = async (task: FollowUp, column: string) => { if (column !== 'completed' || isFollowUpDone(task.status)) return; await complete(task) }

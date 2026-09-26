@@ -18,7 +18,7 @@ const search = ref('')
 const modalOpen = ref(false)
 const actionError = ref('')
 const filtered = computed(() => staff.value)
-const save = async () => { actionError.value = ''; try { await create(); modalOpen.value = false; await load(tab.value, search.value) } catch (cause) { actionError.value = cause instanceof Error ? cause.message : normalizeApiError(cause, 'Staff profile could not be created.') } }
+const save = async () => { actionError.value = ''; try { await create(); modalOpen.value = false; await load(tab.value, search.value) } catch (cause) { actionError.value = normalizeApiError(cause, 'Staff profile could not be created.') } }
 const saveProfile = async (member: StaffMember) => { actionError.value = ''; try { await update(); await load(tab.value, search.value); selected.value = { ...member } } catch (cause) { actionError.value = normalizeApiError(cause, 'Staff profile could not be updated.') } }
 const addSlot = async (payload: Record<string, unknown>) => { try { await addSchedule(payload) } catch (cause) { actionError.value = normalizeApiError(cause, 'Schedule could not be added.') } }
 watch([tab, search], () => load(tab.value, search.value))

@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { normalizeApiError } from '~/utils/api/errors'
 import type { AxiosInstance } from 'axios'
 import { authStorage } from '~/utils/auth/storage'
 import { incrementGlobalLoader, decrementGlobalLoader } from '~/utils/api/loader'
@@ -7,6 +8,7 @@ import { hasUnsavedClinicalWork } from '~/utils/clinical-navigation'
 
 export default defineNuxtPlugin((nuxtApp) => {
   // Tenant requests must pass through Nuxt so refresh tokens never reach JS.
+  const toast = useToast()
   const configuredApiBaseUrl = '/api/bff'
   const apiBaseUrl = configuredApiBaseUrl.startsWith('/') && import.meta.server
     ? `${useRequestURL().origin}${configuredApiBaseUrl}`
@@ -53,6 +55,11 @@ export default defineNuxtPlugin((nuxtApp) => {
     },
     async (error) => {
       decrementGlobalLoader()
+      const method = String(error.config?.method || 'get').toLowerCase()
+      const status = error.response?.status
+      if (import.meta.client && !['get', 'head'].includes(method) && ![400, 422].includes(status)) {
+        toast.show(normalizeApiError(error), 'error')
+      }
 
       // Preserve unsynchronized clinical text when a background request discovers
       // an expired session. The doctor can sign in in another tab and retry.

@@ -1258,3 +1258,22 @@
 .patient-sort-button { display: inline-flex; align-items: center; gap: 6px; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-transform: inherit; cursor: pointer; text-align: left; }
 .patient-sort-button:focus-visible { outline: 2px solid var(--cf-primary); outline-offset: 4px; border-radius: 3px; }
 .patients-table th[aria-sort="ascending"], .patients-table th[aria-sort="descending"] { color: var(--cf-primary); }
+
+/* Doctor notes and prescription speech controls */
+.doctor-notes { margin-block: 1rem 2rem; }
+.doctor-notes label { display: grid; gap: .4rem; margin-block: .8rem; font-weight: 600; }
+.doctor-notes textarea, .doctor-notes select { padding: .7rem; border: 1px solid #ccd4df; border-radius: 8px; background: white; color: #172033; font: inherit; }
+.doctor-notes textarea { width: 100%; box-sizing: border-box; resize: vertical; line-height: 1.65; }
+.note-editor { border-left: 4px solid #228477; }
+.note-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; }
+.voice-note-help { margin: .8rem 0; padding: .8rem 1rem; border-radius: .5rem; background: #f1f8f7; }
+.voice-note-help h4 { margin: 0 0 .35rem; }
+.voice-note-help ol { margin: 0; padding-left: 1.25rem; }
+.voice-note-help p { margin: .45rem 0 0; }
+.note-text { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; line-height: 1.7; }
+.note-interim { color: #52667b; font-style: italic; }
+.note-translation { margin-top: 1rem; padding: 1rem; border-radius: 8px; background: #f2f7fa; }
+.patients-muted { overflow-wrap: anywhere; }
+.prescription-reading { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; margin-block: 1rem; }
+.prescription-reading select { margin-left: .5rem; padding: .5rem; border-radius: 6px; }
+.prescription-reading small { flex-basis: 100%; }

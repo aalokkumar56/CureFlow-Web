@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { patientConstraints } from '~/utils/validation'
 import type { PatientRecord } from '~/composables/patients/usePatients'
 import { patientStatuses, patientSources, patientList } from '~/utils/patients'
 import { normalizeApiError } from '~/utils/api/errors'
 import { hasPermission, PERMISSIONS } from '~/utils/permissions'
 const props = defineProps<{
   patient?: PatientRecord
+  error?: string
   saving?: boolean
   readonly?: boolean
 }>()
@@ -198,7 +200,7 @@ onMounted(async () => {
 })
 </script>
 <template>
-  <form class="patient-editor" @submit.prevent="submit">
+  <ValidatedForm :error="error" class="patient-editor" @submit.prevent="submit">
     <p v-if="lookupError" class="patients-notice" role="status">
       {{ lookupError }}
     </p>
@@ -218,7 +220,7 @@ onMounted(async () => {
           "
         >
           <span>Referring doctor</span>
-          <select v-model="form.referring_doctor_id">
+          <select v-model="form.referring_doctor_id" name="referring_doctor_id">
             <option value="">Not referred</option>
             <option
               v-for="doctor in doctors"
@@ -250,7 +252,7 @@ onMounted(async () => {
                   type || '',
                 )
               "
-              v-model="form[key]"
+              :name="key" v-model="form[key]"
             >
               <option value="">Not specified</option>
               <option
@@ -263,8 +265,9 @@ onMounted(async () => {
             </select>
             <input
               v-else
-              v-model="form[key]"
+              :name="key" v-model="form[key]"
               :type="type"
+              v-bind="patientConstraints[key as keyof typeof patientConstraints] || {}"
               :required="['name', 'phone'].includes(key)"
               :min="type === 'number' ? 0 : undefined"
               :max="
@@ -274,14 +277,14 @@ onMounted(async () => {
                     ? new Date().toISOString().slice(0, 10)
                     : undefined
               "
-              :maxlength="key.includes('phone') ? 20 : 200"
+
             />
           </label>
         </template>
         <label
           v-if="patient && section.title === 'Care & follow-up'"
           class="patient-checkbox"
-          ><input v-model="form.email_notifications_enabled" type="checkbox" />
+          ><input v-model="form.email_notifications_enabled" name="email_notifications_enabled" type="checkbox" />
           Email notifications enabled</label
         >
       </div>
@@ -294,9 +297,9 @@ onMounted(async () => {
         @click="emit('cancel')"
       >
         Cancel</button
-      ><button class="patients-primary-btn" :disabled="saving">
+      ><button type="submit" class="patients-primary-btn" :disabled="saving">
         {{ saving ? 'Saving…' : patient ? 'Save changes' : 'Create patient' }}
       </button>
     </footer>
-  </form>
+  </ValidatedForm>
 </template>

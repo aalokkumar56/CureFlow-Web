@@ -319,7 +319,7 @@ onMounted(() => { void load(true) })
     </div>
     <div v-else-if="loadError" class="appointments-error" role="alert">
       {{ loadError }}
-      <button class="patients-secondary-btn" @click="load(true)">Retry</button>
+      <button type="button" class="patients-secondary-btn" @click="load(true)">Retry</button>
     </div>
     <template v-else-if="patient"
       ><header class="patient-profile-hero">
@@ -338,12 +338,12 @@ onMounted(() => { void load(true) })
           </div>
         </div>
         <div class="patients-header-actions">
-          <PatientsPatientStatus :status="patient.status" /><button
+          <PatientsPatientStatus :status="patient.status" /><button type="button"
             class="patients-secondary-btn"
             @click="load()"
           >
             Refresh</button
-          ><button
+          ><button type="button"
             v-if="can(PERMISSIONS.PatientEdit)"
             class="patients-primary-btn"
             @click="tab('details')"
@@ -377,7 +377,7 @@ onMounted(() => { void load(true) })
             .join(', ')
         }}
       </p>
-      <p v-if="error" class="appointments-error" role="alert">{{ error }}</p>
+      <FormError v-if="error" :error="error" role="alert" />
       <p v-if="success" class="patients-success" role="status">{{ success }}</p>
       <div v-if="visitId" class="patients-consultation">
         <div>
@@ -386,7 +386,7 @@ onMounted(() => { void load(true) })
             Notes, vitals, prescriptions and uploads are linked to this visit.
           </p>
         </div>
-        <button
+        <button type="button"
           class="patients-primary-btn"
           :disabled="saving"
           @click="completeConsultation"
@@ -412,7 +412,7 @@ onMounted(() => { void load(true) })
           <article class="patient-clinical-panel">
             <header class="patient-section-header">
               <h2>Today’s appointments</h2>
-              <button
+              <button type="button"
                 class="patients-secondary-btn"
                 @click="tab('appointments')"
               >
@@ -448,7 +448,7 @@ onMounted(() => { void load(true) })
           >
             <header class="patient-section-header">
               <h2>Upcoming appointments</h2>
-              <button
+              <button type="button"
                 class="patients-secondary-btn"
                 @click="tab('appointments')"
               >
@@ -557,7 +557,7 @@ onMounted(() => { void load(true) })
           @changed="load()"
           @consult="startConsultation"
       /></template>
-      <PatientsPatientForm
+      <PatientsPatientForm :error="error"
         v-else-if="activeTab === 'details'"
         :patient="patient"
         :saving="saving"

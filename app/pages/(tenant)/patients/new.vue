@@ -52,14 +52,14 @@ async function save(payload: Record<string, unknown>) {
       You do not have permission to create patients.
     </p>
     <template v-else
-      ><p v-if="error" class="appointments-error" role="alert">{{ error }}</p>
+      ><FormError v-if="error" :error="error" role="alert" />
       <NuxtLink
         v-if="createdId"
         :to="`/patients/${createdId}`"
         class="patients-secondary-btn"
         >Open created patient</NuxtLink
       >
-      <PatientsPatientForm
+      <PatientsPatientForm :error="error"
         :saving="saving"
         :readonly="!!createdId"
         @save="save"

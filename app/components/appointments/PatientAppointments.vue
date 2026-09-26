@@ -83,11 +83,11 @@ async function status(appointment: Appointment, value: string) {
   <section class="patient-clinical-panel">
     <header class="patient-section-header">
       <h2>Appointments</h2>
-      <button v-if="canCreate" class="patients-primary-btn" @click="open">
+      <button type="button" v-if="canCreate" class="patients-primary-btn" @click="open">
         + Book appointment
       </button>
     </header>
-    <p v-if="error" class="appointments-error" role="alert">{{ error }}</p>
+    <FormError v-if="error" :error="error" role="alert" />
     <AppointmentFormModal
       :open="showing"
       :patient-id="patientId"
@@ -127,7 +127,7 @@ async function status(appointment: Appointment, value: string) {
         <span class="patient-status">{{
           patientLabel(appointment.status)
         }}</span
-        ><button
+        ><button type="button"
           v-if="canEdit"
           class="patients-secondary-btn"
           :disabled="saving"
@@ -156,7 +156,7 @@ async function status(appointment: Appointment, value: string) {
           >
             {{ patientLabel(value) }}
           </option></select
-        ><button
+        ><button type="button"
           v-if="
             canConsult &&
             ['scheduled', 'confirmed'].includes(appointment.status)

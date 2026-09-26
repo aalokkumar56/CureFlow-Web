@@ -316,7 +316,7 @@ onMounted(async () => {
       </div>
     </header>
 
-    <p v-if="error" class="appointments-error">{{ error }}</p>
+    <FormError v-if="error" :error="error" />
 
     <div v-if="loading" class="appointments-state">Loading appointments…</div>
     <div v-else class="appointment-board-wrap">
@@ -378,14 +378,14 @@ onMounted(async () => {
     <section v-if="addPatientOpen" class="appointments-modal">
       <div class="appointments-modal-panel appointments-add-patient-panel">
         <header><h3>Add patient</h3><button type="button" @click="addPatientOpen = false">Close</button></header>
-        <form @submit.prevent="addPatient">
-          <label>Full name<input v-model="newPatient.name" required /></label>
-          <label>Phone number<input v-model="newPatient.phone" type="tel" required /></label>
+        <ValidatedForm :error="addPatientError" @submit.prevent="addPatient">
+          <label>Full name<input name="name" maxlength="200" v-model="newPatient.name" required /></label>
+          <label>Phone number<input name="phone" maxlength="20" v-model="newPatient.phone" type="tel" required /></label>
           <label>Age<input v-model="newPatient.age" type="number" min="0" max="150" /></label>
           <label>Gender<select v-model="newPatient.gender"><option value="">Not specified</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option><option value="unknown">Unknown</option></select></label>
-          <p v-if="addPatientError" class="appointments-form-error">{{ addPatientError }}</p>
+          <FormError v-if="addPatientError" :error="addPatientError" />
           <div class="appointments-modal-actions"><button type="button" class="secondary" @click="addPatientOpen = false">Cancel</button><button type="submit" :disabled="addingPatient">{{ addingPatient ? 'Adding…' : 'Add patient' }}</button></div>
-        </form>
+        </ValidatedForm>
       </div>
     </section>
   </section>

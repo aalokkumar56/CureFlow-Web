@@ -1,10 +1,114 @@
 <script setup lang="ts">
 import { PhCalendarBlank, PhX } from '@phosphor-icons/vue'
-import { employmentTypes, formatScheduleDay, staffRoles, type StaffMember, type StaffSchedule } from '~/utils/staff'
-const props = defineProps<{ member: StaffMember; schedules: StaffSchedule[]; departments: string[]; saving: boolean; error?: string }>()
-const emit = defineEmits<{ close: []; save: [member: StaffMember]; addSchedule: [payload: Record<string, unknown>] }>()
+import {
+  employmentTypes,
+  formatScheduleDay,
+  staffRoles,
+  type StaffMember,
+  type StaffSchedule,
+} from '~/utils/staff'
+const props = defineProps<{
+  member: StaffMember
+  schedules: StaffSchedule[]
+  departments: string[]
+  saving: boolean
+  error?: string
+}>()
+const emit = defineEmits<{
+  close: []
+  save: [member: StaffMember]
+  addSchedule: [payload: Record<string, unknown>]
+}>()
 const schedule = reactive({ day_of_week: '1', start_time: '09:00', end_time: '13:00', notes: '' })
 </script>
 <template>
-  <aside class="staff-detail-panel"><header><div class="staff-detail-heading"><span class="staff-detail-avatar">{{ props.member.name.slice(0, 1).toUpperCase() }}</span><div><h2>{{ props.member.name }}</h2><p>{{ staffRoles[props.member.role] || props.member.role }} · {{ props.member.department || 'No department' }}</p></div></div><button type="button" class="staff-close" aria-label="Close" @click="emit('close')"><PhX :size="19" /></button></header><div class="staff-detail-content"><p v-if="props.member.qualification" class="staff-qualification">{{ props.member.qualification }}</p><label>Department<select v-model="props.member.department"><option value="">Not specified</option><option v-for="department in props.departments" :key="department" :value="department">{{ department }}</option></select></label><label v-if="props.member.role === 'doctor'">Consultation fee (₹)<input v-model.number="props.member.consultation_fee" type="number" min="0" /></label><label>Employment type<select v-model="props.member.employment_type"><option v-for="(label, value) in employmentTypes" :key="value" :value="value">{{ label }}</option></select></label><label>Available for appointments / duty<select v-model="props.member.is_available"><option :value="true">Yes</option><option :value="false">No</option></select></label><button type="button" class="staff-primary-button staff-full-button" :disabled="props.saving" @click="emit('save', props.member)">{{ props.saving ? 'Saving…' : 'Save profile' }}</button><section v-if="props.member.role === 'doctor'" class="staff-schedule"><h3><PhCalendarBlank :size="16" /> Schedule</h3><p v-if="!props.schedules.length" class="staff-muted">No schedule slots defined.</p><div v-for="item in props.schedules" :key="item.id" class="staff-schedule-row">{{ formatScheduleDay(item) }} · {{ item.start_time?.slice(0, 5) }} – {{ item.end_time?.slice(0, 5) }}<small v-if="item.notes">{{ item.notes }}</small></div><div class="staff-schedule-form"><select v-model="schedule.day_of_week"><option v-for="(_, index) in ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']" :key="index" :value="String(index)">{{ ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][index] }}</option></select><input v-model="schedule.start_time" type="time" /><input v-model="schedule.end_time" type="time" /><button type="button" class="staff-primary-button" @click="emit('addSchedule', { ...schedule })">Add slot</button></div></section></div></aside>
+  <aside class="staff-detail-panel">
+    <header>
+      <div class="staff-detail-heading">
+        <span class="staff-detail-avatar">{{ props.member.name.slice(0, 1).toUpperCase() }}</span>
+        <div>
+          <h2>{{ props.member.name }}</h2>
+          <p>
+            {{ staffRoles[props.member.role] || props.member.role }} ·
+            {{ props.member.department || 'No department' }}
+          </p>
+        </div>
+      </div>
+      <button type="button" class="staff-close" aria-label="Close" @click="emit('close')">
+        <PhX :size="19" />
+      </button>
+    </header>
+    <div class="staff-detail-content">
+      <ValidatedForm @submit.prevent="emit('save', props.member)"
+        ><p v-if="props.member.qualification" class="staff-qualification">
+          {{ props.member.qualification }}
+        </p>
+        <label
+          >Department<select v-model="props.member.department">
+            <option value="">Not specified</option>
+            <option v-for="department in props.departments" :key="department" :value="department">
+              {{ department }}
+            </option>
+          </select></label
+        ><label v-if="props.member.role === 'doctor'"
+          >Consultation fee (₹)<input
+            v-model.number="props.member.consultation_fee"
+            type="number"
+            min="0" /></label
+        ><label
+          >Employment type<select v-model="props.member.employment_type">
+            <option v-for="(label, value) in employmentTypes" :key="value" :value="value">
+              {{ label }}
+            </option>
+          </select></label
+        ><label
+          >Available for appointments / duty<select v-model="props.member.is_available">
+            <option :value="true">Yes</option>
+            <option :value="false">No</option>
+          </select></label
+        ><button
+          type="submit"
+          class="staff-primary-button staff-full-button"
+          :disabled="props.saving">
+          {{ props.saving ? 'Saving…' : 'Save profile' }}
+        </button></ValidatedForm
+      >
+      <section v-if="props.member.role === 'doctor'" class="staff-schedule">
+        <h3><PhCalendarBlank :size="16" /> Schedule</h3>
+        <p v-if="!props.schedules.length" class="staff-muted">No schedule slots defined.</p>
+        <div v-for="item in props.schedules" :key="item.id" class="staff-schedule-row">
+          {{ formatScheduleDay(item) }} · {{ item.start_time?.slice(0, 5) }} –
+          {{ item.end_time?.slice(0, 5) }}<small v-if="item.notes">{{ item.notes }}</small>
+        </div>
+        <ValidatedForm
+          class="staff-schedule-form"
+          @submit.prevent="emit('addSchedule', { ...schedule })"
+          ><select v-model="schedule.day_of_week">
+            <option
+              v-for="(_, index) in ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']"
+              :key="index"
+              :value="String(index)">
+              {{ ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][index] }}
+            </option></select
+          ><input
+            v-model="schedule.start_time"
+            name="start_time"
+            data-label="Start time"
+            required
+            type="time" /><input
+            v-model="schedule.end_time"
+            name="end_time"
+            data-label="End time"
+            data-after="start_time"
+            required
+            type="time" /><button
+            type="submit"
+            class="staff-primary-button"
+            :disabled="props.saving">
+            Add slot
+          </button></ValidatedForm
+        >
+      </section>
+    </div>
+  </aside>
 </template>

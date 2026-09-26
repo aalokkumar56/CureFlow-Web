@@ -47,49 +47,38 @@ async function upload() {
   try {
     const data = new FormData()
     data.append('file', file.value)
-    result.value = await $api.post<PatientImportResult>(
-      '/patients/import-excel',
-      data,
-    )
+    result.value = await $api.post<PatientImportResult>('/patients/import-excel', data)
     file.value = undefined
     if (input.value) input.value.value = ''
     emit('imported')
   } catch (cause) {
-    error.value = normalizeApiError(
-      cause,
-      'Import failed. You can retry this file.',
-    )
+    error.value = normalizeApiError(cause, 'Import failed. You can retry this file.')
   } finally {
     busy.value = false
   }
 }
 </script>
 <template>
-  <button class="patients-secondary-btn" @click="open">Import patients</button>
+  <button type="button" class="patients-secondary-btn" @click="open">Import patients</button>
   <dialog
     ref="dialog"
     class="patient-import-dialog"
     aria-labelledby="patient-import-title"
-    @cancel="busy && $event.preventDefault()"
-  >
-    <form @submit.prevent="upload">
+    @cancel="busy && $event.preventDefault()">
+    <ValidatedForm :error="error" @submit.prevent="upload">
       <h2 id="patient-import-title">Import patients from Excel or CSV</h2>
       <p>
-        Use a Name column (Patient Name, Full Name) and a Phone column (Mobile
-        Number, Contact, Mob). Email, Age, Gender, Department, Source, Tags and
-        Notes are optional.
+        Use a Name column (Patient Name, Full Name) and a Phone column (Mobile Number, Contact,
+        Mob). Email, Age, Gender, Department, Source, Tags and Notes are optional.
       </p>
       <p>
-        Only the first Excel worksheet is imported. Put the headers in the first
-        five rows. Use semicolons between tags. Maximum file size: 10 MB.
+        Only the first Excel worksheet is imported. Put the headers in the first five rows. Use
+        semicolons between tags. Maximum file size: 10 MB.
       </p>
       <button
         type="button"
         class="patients-secondary-btn"
-        @click="
-          downloadPatientCsv(patientImportTemplate, 'sample_patient_import.csv')
-        "
-      >
+        @click="downloadPatientCsv(patientImportTemplate, 'sample_patient_import.csv')">
         Download template
       </button>
       <p>Replace the sample patient before uploading.</p>
@@ -102,16 +91,13 @@ async function upload() {
           @change="choose"
       /></label>
       <p v-if="file">
-        Selected: <strong>{{ file.name }}</strong> ({{
-          (file.size / 1024).toFixed(1)
-        }}
+        Selected: <strong>{{ file.name }}</strong> ({{ (file.size / 1024).toFixed(1) }}
         KB). Select Upload &amp; Import to continue.
       </p>
-      <p v-if="error" class="appointments-error" role="alert">{{ error }}</p>
+
       <section v-if="result" role="status">
         <p>
-          <strong>{{ result.inserted || 0 }} inserted</strong> ·
-          {{ result.skipped || 0 }} skipped ·
+          <strong>{{ result.inserted || 0 }} inserted</strong> · {{ result.skipped || 0 }} skipped ·
           {{ result.blankRows ?? result.blank_rows ?? 0 }} blank rows.
         </p>
         <p v-if="!result.inserted && !result.skipped">
@@ -129,13 +115,12 @@ async function upload() {
           type="button"
           class="patients-secondary-btn"
           :disabled="busy"
-          @click="dialog?.close()"
-        >
+          @click="dialog?.close()">
           {{ result ? 'Close' : 'Cancel' }}</button
-        ><button class="patients-primary-btn" :disabled="busy || !file">
+        ><button type="submit" class="patients-primary-btn" :disabled="busy || !file">
           {{ busy ? 'Importing…' : 'Upload & Import' }}
         </button>
       </footer>
-    </form>
+    </ValidatedForm>
   </dialog>
 </template>

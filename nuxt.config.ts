@@ -5,7 +5,21 @@ export default defineNuxtConfig({
   ssr: true,
   devtools: { enabled: false },
 
-  css: ['~/assets/css/main.css', '~/assets/css/patients.css', '~/assets/css/whatsapp.css', '~/assets/css/campaigns.css', '~/assets/css/analytics.css', '~/assets/css/followups.css', '~/assets/css/referrals.css', '~/assets/css/staff.css', '~/assets/css/staff-layout.css', '~/assets/css/settings.css', '~/assets/css/email.css', '~/assets/css/platform.css'],
+  css: [
+    '~/assets/css/main.css',
+    '~/assets/css/feedback.css',
+    '~/assets/css/patients.css',
+    '~/assets/css/whatsapp.css',
+    '~/assets/css/campaigns.css',
+    '~/assets/css/analytics.css',
+    '~/assets/css/followups.css',
+    '~/assets/css/referrals.css',
+    '~/assets/css/staff.css',
+    '~/assets/css/staff-layout.css',
+    '~/assets/css/settings.css',
+    '~/assets/css/email.css',
+    '~/assets/css/platform.css',
+  ],
 
   vite: {
     plugins: [tailwindcss()],
@@ -14,12 +28,9 @@ export default defineNuxtConfig({
   pages: true,
 
   runtimeConfig: {
-    backendApiUrl:
-      process.env.NUXT_BACKEND_API_URL || 'http://localhost:5180/api',
+    backendApiUrl: process.env.NUXT_BACKEND_API_URL || 'http://localhost:5180/api',
     public: {
-      apiBaseUrl:
-        process.env.NUXT_PUBLIC_API_BASE_URL ||
-        '/api/bff',
+      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || '/api/bff',
     },
   },
 

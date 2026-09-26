@@ -1,0 +1,95 @@
+.form-error {
+  padding: 12px 14px;
+  border: 1px solid #fecaca;
+  border-radius: var(--cf-radius-md);
+  background: var(--cf-danger-soft);
+  color: var(--cf-danger);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.form-error p {
+  margin: 0;
+  color: inherit;
+}
+.form-error p + p {
+  margin-top: 6px;
+}
+
+.field-message {
+  display: block;
+  color: var(--cf-danger);
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin-top: 5px;
+}
+.validation-summary {
+  grid-column: 1 / -1;
+  color: var(--cf-danger);
+  background: var(--cf-danger-soft);
+  padding: 12px 16px;
+  border-radius: var(--cf-radius-md);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.validation-summary ul {
+  padding-left: 20px;
+  margin: 8px 0 0;
+}
+.validation-summary button {
+  color: inherit;
+  background: none;
+  border: 0;
+  text-align: left;
+  padding: 3px 0;
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+}
+.validated-form [aria-invalid='true'] {
+  border-color: var(--cf-danger) !important;
+  outline: 1px solid var(--cf-danger);
+}
+
+.app-toasts {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 10000;
+  width: min(420px, calc(100vw - 40px));
+  max-height: 70vh;
+  overflow-y: auto;
+  display: grid;
+  gap: 10px;
+}
+.app-toast {
+  display: flex;
+  align-items: start;
+  gap: 12px;
+  border: 1px solid #a7f3d0;
+  background: var(--cf-success-soft);
+  color: var(--cf-success);
+  border-radius: var(--cf-radius-lg);
+  padding: 14px;
+  box-shadow: 0 8px 25px #0002;
+}
+.app-toast.error {
+  background: var(--cf-danger-soft);
+  border-color: #fecaca;
+  color: var(--cf-danger);
+}
+.app-toast p {
+  flex: 1;
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.app-toast button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 24px;
+  cursor: pointer;
+}

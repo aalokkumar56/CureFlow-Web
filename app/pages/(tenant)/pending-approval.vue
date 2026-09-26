@@ -35,13 +35,13 @@ async function check() {
       </p>
       <p v-if="message" role="status">{{ message }}</p>
       <div class="patients-header-actions">
-        <button
+        <button type="button"
           class="patients-primary-btn"
           :disabled="checking"
           @click="check"
         >
           {{ checking ? 'Checking…' : 'Check approval status' }}</button
-        ><button class="patients-secondary-btn" @click="auth.logout()">
+        ><button type="button" class="patients-secondary-btn" @click="auth.logout()">
           Sign out
         </button>
       </div>

@@ -439,7 +439,7 @@ watch(section, (value) => {
                 </p>
               </div>
             </header>
-            <form class="template-form" @submit.prevent="addTemplate">
+            <ValidatedForm class="template-form" @submit.prevent="addTemplate">
               <input
                 v-model="templateForm.name"
                 placeholder="Template name"
@@ -460,7 +460,7 @@ watch(section, (value) => {
               >
                 <PhPlus :size="16" /> Add template
               </button>
-            </form>
+            </ValidatedForm>
             <div class="template-list">
               <article v-for="template in templates" :key="template.id">
                 <div>

@@ -138,7 +138,7 @@ onMounted(load)
         <h2>{{ config.title }}</h2>
         <p class="patients-muted">{{ items.length }} recorded entries</p>
       </div>
-      <button
+      <button type="button"
         v-if="canEdit && !showing"
         class="patients-primary-btn"
         @click="open()"
@@ -148,12 +148,12 @@ onMounted(load)
     </header>
     <p v-if="error" class="appointments-error" role="alert">
       {{ error }}
-      <button v-if="!showing" class="patients-secondary-btn" @click="load">
+      <button type="button" v-if="!showing" class="patients-secondary-btn" @click="load">
         Retry
       </button>
     </p>
     <p v-if="success" class="patients-success" role="status">{{ success }}</p>
-    <form v-if="showing" class="patient-record-form" @submit.prevent="save">
+    <ValidatedForm :error="error" v-if="showing" class="patient-record-form" @submit.prevent="save">
       <PatientsRecordFields
         v-model="form"
         :fields="config.fields"
@@ -167,11 +167,11 @@ onMounted(load)
           @click="showing = false"
         >
           Cancel</button
-        ><button class="patients-primary-btn" :disabled="saving">
+        ><button type="submit" class="patients-primary-btn" :disabled="saving">
           {{ saving ? 'Saving…' : 'Save record' }}
         </button>
       </footer>
-    </form>
+    </ValidatedForm>
     <div v-if="loading" class="dashboard-state" role="status">
       Loading records…
     </div>
@@ -187,13 +187,13 @@ onMounted(load)
         <header>
           <strong>{{ patientDate(item.created_at || item.measured_at) }}</strong
           ><span>{{ item.author_name || item.recorded_by_name }}</span
-          ><button
+          ><button type="button"
             v-if="canEdit && config.edit"
             class="patients-secondary-btn"
             @click="open(item)"
           >
             Edit</button
-          ><button
+          ><button type="button"
             v-if="canEdit && config.remove"
             class="patients-secondary-btn"
             :disabled="saving"

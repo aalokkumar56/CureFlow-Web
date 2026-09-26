@@ -233,21 +233,3 @@ onScopeDispose(() => {
   </div>
 </template>
 
-<style scoped>
-.lead-picker-pagination {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 10px;
-}
-.lead-picker-pagination button {
-  padding: 6px 10px;
-  border: 1px solid #dbe4f0;
-  border-radius: 6px;
-}
-.lead-picker-pagination span,
-.campaign-muted {
-  font-size: 13px;
-}
-</style>

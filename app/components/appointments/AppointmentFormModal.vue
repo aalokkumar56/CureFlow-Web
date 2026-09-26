@@ -111,7 +111,12 @@ const selectDoctor = () => {
     )?.department || form.department
 }
 
+const validationError = ref('')
 const save = () => {
+  validationError.value = ''
+  if (!props.patientId && !form.patientId) { validationError.value = 'Select a patient.'; return }
+  if (new Date(form.scheduledAt).getTime() < Date.now() - 5 * 60000) { validationError.value = 'Scheduled time must be in the future.'; return }
+  if (form.department.length > 200) { validationError.value = 'Department must contain no more than 200 characters.'; return }
   emit('save', {
     patient_id: props.patientId || form.patientId,
     doctor_user_id: form.doctorUserId,
@@ -144,7 +149,7 @@ watch(
         </button>
       </header>
 
-      <form @submit.prevent="save">
+      <ValidatedForm :error="validationError || error" @submit.prevent="save">
         <slot name="before-fields" />
         <label v-if="needsPatient">
           Patient
@@ -169,7 +174,7 @@ watch(
         <div class="appointment-form-grid">
           <label>
             Doctor
-            <select v-model="form.doctorUserId" required @change="selectDoctor">
+            <select v-model="form.doctorUserId" name="doctorUserId" required @change="selectDoctor">
               <option value="">Select doctor</option>
               <option v-for="doctor in options.doctors" :key="doctor.user_id" :value="String(doctor.user_id)">
                 {{ doctor.name }}
@@ -179,7 +184,7 @@ watch(
 
           <label>
             Department
-            <select v-model="form.department" required>
+            <select v-model="form.department" name="department" required>
               <option value="">Select department</option>
               <option v-for="department in options.departments" :key="department" :value="department">
                 {{ department }}
@@ -189,26 +194,26 @@ watch(
 
           <label>
             Date & time
-            <input v-model="form.scheduledAt" type="datetime-local" required />
+            <input v-model="form.scheduledAt" name="scheduledAt" data-future type="datetime-local" required />
           </label>
 
           <label>
             Duration (minutes)
-            <input v-model.number="form.durationMinutes" type="number" min="1" required />
+            <input v-model.number="form.durationMinutes" name="durationMinutes" type="number" min="5" max="480" required />
           </label>
         </div>
 
         <label>
           Chief complaint
-          <input v-model="form.chiefComplaint" />
+          <input maxlength="2000" v-model="form.chiefComplaint" name="chiefComplaint" />
         </label>
 
         <label>
           Notes
-          <textarea v-model="form.notes" rows="3" placeholder="Notes" />
+          <textarea maxlength="4000" v-model="form.notes" name="notes" rows="3" placeholder="Notes" />
         </label>
 
-        <p v-if="error" class="appointments-form-error">{{ error }}</p>
+
 
         <div class="appointments-modal-actions">
           <button type="button" class="secondary" @click="close">Cancel</button>
@@ -216,7 +221,7 @@ watch(
             {{ submitLabel }}
           </button>
         </div>
-      </form>
+      </ValidatedForm>
     </div>
   </section>
 </template>

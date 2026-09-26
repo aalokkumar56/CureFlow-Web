@@ -225,7 +225,7 @@ onMounted(async () => {
             </select>
           </div>
           <div class="patients-filter-actions">
-            <button
+            <button type="button"
               class="patients-secondary-btn"
               :disabled="!patients.length || loading"
               @click="exportCsv"
@@ -244,7 +244,7 @@ onMounted(async () => {
         </div>
         <p v-if="error" class="appointments-error" role="alert">
           {{ error }}
-          <button class="patients-secondary-btn" @click="refresh">Retry</button>
+          <button type="button" class="patients-secondary-btn" @click="refresh">Retry</button>
         </p>
         <div
           class="patients-workbench"
@@ -320,7 +320,7 @@ onMounted(async () => {
                       <span v-else>—</span>
                     </td>
                     <td>
-                      <button
+                      <button type="button"
                         class="preview-btn"
                         :aria-label="`Preview ${patient.name}`"
                         @click="selected = patient"
@@ -341,7 +341,7 @@ onMounted(async () => {
                         <PhUsersThree :size="32" />
                         <h3>No patients found</h3>
                         <p>Try a different search or clear your filters.</p>
-                        <button
+                        <button type="button"
                           class="patients-secondary-btn"
                           @click="router.replace({ query: {} })"
                         >
@@ -370,12 +370,12 @@ onMounted(async () => {
                   <option :value="50">50</option>
                 </select></label
               ><span>Page {{ page }} of {{ pagination.totalPages }}</span
-              ><button
+              ><button type="button"
                 :disabled="loading || page <= 1"
                 @click="filter('page', String(page - 1))"
               >
                 Previous</button
-              ><button
+              ><button type="button"
                 :disabled="loading || page >= pagination.totalPages"
                 @click="filter('page', String(page + 1))"
               >

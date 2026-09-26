@@ -27,14 +27,9 @@ const text = computed(() => {
         <option v-for="item in noteLanguages" :key="item.value" :value="item.value">{{ item.label }}</option>
       </select>
     </label>
-    <button v-if="speaking" class="patients-secondary-btn" @click="stop">Stop listening</button>
-    <button v-else class="patients-secondary-btn" :disabled="!text" @click="listen(text, language)">Listen to prescription</button>
+    <button type="button" v-if="speaking" class="patients-secondary-btn" @click="stop">Stop listening</button>
+    <button type="button" v-else class="patients-secondary-btn" :disabled="!text" @click="listen(text, language)">Listen to prescription</button>
     <small>Reads the original prescription. Select its written language; this does not translate or change it.</small>
-    <p v-if="readError" class="appointments-error" role="alert">{{ readError }}</p>
+    <FormError v-if="readError" :error="readError" role="alert" />
   </div>
 </template>
-<style scoped>
-.prescription-reading { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; margin-block: 1rem; }
-select { margin-left: .5rem; padding: .5rem; border-radius: 6px; }
-small { flex-basis: 100%; }
-</style>

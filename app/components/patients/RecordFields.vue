@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vitalConstraints } from '~/utils/validation'
 import type { Field, RecordValue } from '~/utils/patient-clinical'
 import { patientLabel } from '~/utils/patients'
 defineProps<{ fields: Field[]; disabled?: boolean }>()
@@ -16,7 +17,7 @@ const model = defineModel<Record<string, RecordValue>>({ required: true })
       ><span>{{ field.label }}{{ field.required ? ' *' : '' }}</span
       ><select
         v-if="field.options"
-        v-model="model[field.key]"
+        :name="field.key" v-model="model[field.key]"
         :required="field.required"
       >
         <option value="">Not specified</option>
@@ -30,15 +31,16 @@ const model = defineModel<Record<string, RecordValue>>({ required: true })
         :required="field.required"
         maxlength="10000" /><input
         v-else-if="field.type === 'checkbox'"
-        v-model="model[field.key]"
+        :name="field.key" v-model="model[field.key]"
         type="checkbox" /><input
         v-else
-        v-model="model[field.key]"
+        :name="field.key" v-model="model[field.key]"
         :type="field.type || 'text'"
         :required="field.required"
         :min="field.min"
         :max="field.max"
         :step="field.type === 'number' ? 'any' : undefined"
+        v-bind="vitalConstraints[field.key] || {}"
     /></label>
   </fieldset>
 </template>

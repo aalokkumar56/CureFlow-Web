@@ -76,28 +76,24 @@ onMounted(load)
   <section class="patient-clinical-panel">
     <header class="patient-section-header">
       <h2>Today’s clinical summary</h2>
-      <button class="patients-secondary-btn" :disabled="loading" @click="load">
+      <button type="button" class="patients-secondary-btn" :disabled="loading" @click="load">
         Refresh
       </button>
     </header>
     <p v-if="loading" role="status">Loading today’s records…</p>
-    <p v-if="printError" class="appointments-error" role="alert">
-      {{ printError }}
-    </p>
+    <FormError v-if="printError" :error="printError" role="alert" />
     <div class="patient-overview-grid">
       <section v-for="section in sections" :key="section.key">
         <header class="patient-section-header">
           <h3>{{ section.title }}</h3>
-          <button
+          <button type="button"
             class="patients-secondary-btn"
             @click="emit('navigate', section.key)"
           >
             View all
           </button>
         </header>
-        <p v-if="section.error" class="appointments-error" role="alert">
-          {{ section.error }}
-        </p>
+        <FormError v-if="section.error" :error="section.error" role="alert" />
         <p v-else-if="!loading && !section.items.length">
           Nothing recorded today.
         </p>
@@ -121,7 +117,7 @@ onMounted(load)
               {{ medicine.drug_name }} {{ medicine.strength }} ·
               {{ medicine.dosage }} · {{ medicine.frequency }}
             </p>
-            <button
+            <button type="button"
               v-if="item.id"
               class="patients-secondary-btn"
               :disabled="printing"

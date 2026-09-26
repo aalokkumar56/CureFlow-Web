@@ -61,7 +61,7 @@
 					No messages in this thread.
 				</div>
 			</div>
-			<form
+			<ValidatedForm
 				class="email-composer"
 				@submit.prevent="submit">
 				<input
@@ -80,7 +80,7 @@
 					<PhPaperPlaneRight :size="17" />
 					{{ props.sending ? "Sending…" : "Send email" }}
 				</button>
-			</form></template
+			</ValidatedForm></template
 		>
 	</section>
 </template>

@@ -94,9 +94,9 @@ onMounted(load)
     <h2>Documents & paper notes</h2>
     <p v-if="error" class="appointments-error" role="alert">
       {{ error }}
-      <button class="patients-secondary-btn" @click="load">Retry</button>
+      <button type="button" class="patients-secondary-btn" @click="load">Retry</button>
     </p>
-    <form v-if="canEdit" class="patient-record-form" @submit.prevent="upload">
+    <ValidatedForm :error="error" v-if="canEdit" class="patient-record-form" @submit.prevent="upload">
       <div class="patient-form-grid">
         <label
           ><span>Document title</span
@@ -115,11 +115,11 @@ onMounted(load)
         /></label>
       </div>
       <footer class="patient-form-actions">
-        <button class="patients-primary-btn" :disabled="saving || !file">
+        <button type="submit" class="patients-primary-btn" :disabled="saving || !file">
           {{ saving ? 'Uploading…' : 'Upload document' }}
         </button>
       </footer>
-    </form>
+    </ValidatedForm>
     <div v-if="loading" class="dashboard-state">Loading documents…</div>
     <div v-else-if="!items.length && !error" class="empty-state-box">
       No documents uploaded.
@@ -132,9 +132,9 @@ onMounted(load)
             {{ patientDate(item.created_at) }} · {{ item.uploaded_by_name }}
           </p>
         </div>
-        <button class="patients-secondary-btn" @click="download(item)">
+        <button type="button" class="patients-secondary-btn" @click="download(item)">
           Download</button
-        ><button
+        ><button type="button"
           v-if="canEdit"
           class="patients-secondary-btn"
           :disabled="saving"

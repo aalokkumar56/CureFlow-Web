@@ -74,7 +74,7 @@ onMounted(load)
       setup later.
     </p>
     <p v-if="error" class="appointments-error" role="alert">
-      {{ error }} <button @click="load">Retry</button>
+      {{ error }} <button type="button" @click="load">Retry</button>
     </p>
     <p v-if="loading" role="status">Loading setup…</p>
     <section v-for="step in steps" :key="step.key" class="patient-record-card">
@@ -83,7 +83,7 @@ onMounted(load)
       <div class="patients-header-actions">
         <NuxtLink :to="step.to" class="patients-secondary-btn"
           >Open settings</NuxtLink
-        ><button
+        ><button type="button"
           class="patients-primary-btn"
           :disabled="
             loading || !!busy || state[step.field] || state[step.alias]
@@ -101,7 +101,7 @@ onMounted(load)
       </div>
     </section>
     <div class="patients-header-actions">
-      <button
+      <button type="button"
         class="patients-primary-btn"
         :disabled="loading || !!busy"
         @click="complete('complete')"
@@ -109,7 +109,7 @@ onMounted(load)
         {{
           busy === 'complete' ? 'Finishing…' : 'Continue to dashboard'
         }}</button
-      ><button class="patients-secondary-btn" @click="auth.logout()">
+      ><button type="button" class="patients-secondary-btn" @click="auth.logout()">
         Sign out
       </button>
     </div>

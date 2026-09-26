@@ -60,7 +60,7 @@ onMounted(load)
         patientInitials(detail.name)
       }}</span
       ><strong>{{ detail.name }}</strong
-      ><button
+      ><button type="button"
         class="close-preview"
         aria-label="Close preview"
         @click="$emit('close')"
@@ -70,7 +70,7 @@ onMounted(load)
     </div>
     <PatientsPatientStatus :status="detail.status" />
     <p v-if="error" class="appointments-error" role="alert">
-      {{ error }} <button @click="load">Retry</button>
+      {{ error }} <button type="button" @click="load">Retry</button>
     </p>
     <div class="patients-header-actions patient-preview-actions">
       <a
@@ -100,7 +100,7 @@ onMounted(load)
         <dt>Phone</dt>
         <dd>
           {{ detail.phone || '—' }}
-          <button
+          <button type="button"
             v-if="detail.phone"
             aria-label="Copy phone number"
             @click="copy(detail.phone, 'Phone')"
@@ -113,7 +113,7 @@ onMounted(load)
         <dt>Email</dt>
         <dd>
           {{ detail.email || '—' }}
-          <button
+          <button type="button"
             v-if="detail.email"
             aria-label="Copy email address"
             @click="copy(detail.email, 'Email')"

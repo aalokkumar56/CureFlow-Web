@@ -118,7 +118,7 @@ onScopeDispose(() => {
               {{ item.name }}
             </option>
           </select></label
-        ><button
+        ><button type="button"
           class="patients-secondary-btn"
           :disabled="loading"
           @click="load"
@@ -168,7 +168,7 @@ onScopeDispose(() => {
               >
             </div>
             <div class="patients-header-actions">
-              <button
+              <button type="button"
                 v-if="canEdit && item.is_mine && item.status === 'scheduled'"
                 class="patients-secondary-btn"
                 :disabled="!!busy"

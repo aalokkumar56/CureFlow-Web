@@ -67,21 +67,21 @@ onMounted(load)
     </p>
     <p v-if="error" class="appointments-error" role="alert">
       {{ error }}
-      <button class="patients-secondary-btn" @click="load">Retry</button>
+      <button type="button" class="patients-secondary-btn" @click="load">Retry</button>
     </p>
     <p v-if="success" class="patients-success" role="status">{{ success }}</p>
     <div v-if="loading" class="dashboard-state">Loading lifestyle…</div>
-    <form v-else @submit.prevent="save">
+    <ValidatedForm v-else @submit.prevent="save">
       <PatientsRecordFields
         v-model="form"
         :fields="lifestyleFields"
         :disabled="saving || !canEdit"
       />
       <footer v-if="canEdit" class="patient-form-actions">
-        <button class="patients-primary-btn" :disabled="saving">
+        <button type="submit" class="patients-primary-btn" :disabled="saving">
           {{ saving ? 'Saving…' : 'Save lifestyle' }}
         </button>
       </footer>
-    </form>
+    </ValidatedForm>
   </section>
 </template>

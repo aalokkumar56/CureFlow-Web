@@ -182,7 +182,7 @@ onMounted(load)
           Medication plans and follow-up instructions.
         </p>
       </div>
-      <button
+      <button type="button"
         v-if="canEdit && !showing"
         class="patients-primary-btn"
         @click="openPrescription"
@@ -192,11 +192,11 @@ onMounted(load)
     </header>
     <p v-if="error || printError" class="appointments-error" role="alert">
       {{ error || printError }}
-      <button v-if="!showing" class="patients-secondary-btn" @click="load">
+      <button type="button" v-if="!showing" class="patients-secondary-btn" @click="load">
         Retry
       </button>
     </p>
-    <form v-if="showing" class="patient-record-form" @submit.prevent="save">
+    <ValidatedForm v-if="showing" class="patient-record-form" @submit.prevent="save">
       <PatientsRecordFields
         v-model="form"
         :fields="fields"
@@ -270,11 +270,11 @@ onMounted(load)
           @click="cancelPrescription"
         >
           Cancel</button
-        ><button class="patients-primary-btn" :disabled="saving">
+        ><button type="submit" class="patients-primary-btn" :disabled="saving">
           {{ saving ? 'Saving…' : 'Save prescription' }}
         </button>
       </footer>
-    </form>
+    </ValidatedForm>
     <div v-if="loading" class="dashboard-state">Loading prescriptions…</div>
     <div v-else-if="!records.length && !error" class="empty-state-box">
       No prescriptions recorded.
@@ -292,7 +292,7 @@ onMounted(load)
             {{ patientDate(record.prescribed_at) }} · {{ record.doctor_name }}
           </p>
         </div>
-        <button
+        <button type="button"
           class="patients-secondary-btn"
           :disabled="printing"
           @click="printRecord(record)"

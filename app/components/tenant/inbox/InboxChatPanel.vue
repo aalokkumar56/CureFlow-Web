@@ -136,8 +136,8 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
           </article>
         </template>
       </div>
-      <form v-if="canSend" class="whatsapp-composer" @submit.prevent="send">
-        <p v-if="error" class="whatsapp-error" role="alert">{{ error }}</p>
+      <ValidatedForm :error="error" v-if="canSend" class="whatsapp-composer" @submit.prevent="send">
+
         <div v-if="attachment" class="whatsapp-attachment-chip"><PhPaperclip :size="16" /><span>{{ attachment.name }} · {{ formatBytes(attachment.size) }}</span><button type="button" aria-label="Remove attachment" @click="clearAttachment"><PhX :size="16" /></button></div>
         <div class="whatsapp-composer-row">
           <input ref="fileInput" type="file" class="sr-only" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv" @change="onPickFile" />
@@ -148,7 +148,7 @@ onUnmounted(() => { if (timer) clearInterval(timer) })
           <textarea v-model="body" rows="2" :disabled="props.whatsappDisabled || sending" :placeholder="props.whatsappDisabled ? 'WhatsApp sending is disabled' : 'Type a WhatsApp message…'" />
           <button type="submit" class="whatsapp-send-button" :disabled="props.whatsappDisabled || sending || (!body.trim() && !attachment)"><PhPaperPlaneRight :size="18" weight="fill" /><span class="sr-only">{{ sending ? 'Sending' : 'Send message' }}</span></button>
         </div>
-      </form>
+      </ValidatedForm>
     </template>
   </section>
 </template>

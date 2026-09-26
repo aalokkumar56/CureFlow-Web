@@ -54,10 +54,10 @@ onMounted(load)
   <section class="patient-clinical-panel">
     <header class="patient-section-header">
       <h2>{{ kind === 'timeline' ? 'Patient timeline' : 'Visit chart' }}</h2>
-      <button class="patients-secondary-btn" @click="load">Refresh</button>
+      <button type="button" class="patients-secondary-btn" @click="load">Refresh</button>
     </header>
     <PatientsDoctorNotes v-if="kind === 'visit-chart'" :key="patientId" :patient-id="patientId" :visit-id="visitId" :appointment-id="appointmentId" />
-    <p v-if="error" class="appointments-error" role="alert">{{ error }}</p>
+    <FormError v-if="error" :error="error" role="alert" />
     <div v-if="loading" class="dashboard-state">Loading history…</div>
     <div v-else-if="!items.length && !error" class="empty-state-box">
       No visit activity recorded.

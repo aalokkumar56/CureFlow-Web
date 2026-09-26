@@ -72,7 +72,7 @@ onMounted(load)
   <section class="settings-card">
     <header><h2>Notification preferences</h2></header>
     <p v-if="error" class="settings-alert" role="alert">
-      {{ error }} <button @click="load">Retry</button>
+      {{ error }} <button type="button" @click="load">Retry</button>
     </p>
     <p v-if="message" role="status">{{ message }}</p>
     <p v-if="loading">Loading preferences…</p>
@@ -91,13 +91,13 @@ onMounted(load)
           :disabled="busy || !item.can_configure"
       /></label>
       <div class="patients-header-actions">
-        <button
+        <button type="button"
           class="settings-primary-button"
           :disabled="busy || !items.length"
           @click="save('preferences')"
         >
           Save preferences</button
-        ><button
+        ><button type="button"
           class="settings-secondary-button"
           :disabled="busy"
           @click="save('reset')"
@@ -116,7 +116,7 @@ onMounted(load)
             v-model="item.in_app_enabled"
             type="checkbox"
             :disabled="busy || !item.can_enable" /></label
-        ><button
+        ><button type="button"
           class="settings-primary-button"
           :disabled="busy || !roles.length"
           @click="save('roles')"
