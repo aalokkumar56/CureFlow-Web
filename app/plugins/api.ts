@@ -3,6 +3,7 @@ import type { AxiosInstance } from 'axios'
 import { authStorage } from '~/utils/auth/storage'
 import { incrementGlobalLoader, decrementGlobalLoader } from '~/utils/api/loader'
 import { keysToSnakeCase } from '~/utils/api/transform'
+import { hasUnsavedClinicalWork } from '~/utils/clinical-navigation'
 
 export default defineNuxtPlugin((nuxtApp) => {
   // Tenant requests must pass through Nuxt so refresh tokens never reach JS.
@@ -53,7 +54,9 @@ export default defineNuxtPlugin((nuxtApp) => {
     async (error) => {
       decrementGlobalLoader()
 
-      if (error.response?.status === 401 && import.meta.client) {
+      // Preserve unsynchronized clinical text when a background request discovers
+      // an expired session. The doctor can sign in in another tab and retry.
+      if (error.response?.status === 401 && import.meta.client && !hasUnsavedClinicalWork()) {
         authStorage.clear()
         nuxtApp.runWithContext(() => {
           const auth = useTenantAuth()

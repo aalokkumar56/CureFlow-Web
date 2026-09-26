@@ -6,6 +6,7 @@ import {
   getRouterParam,
   readRawBody,
   setResponseStatus,
+  setResponseHeader,
 } from 'h3'
 import { backendAuthHeaders, backendBaseUrl, fetchBackend } from '../../utils/backend'
 import { assertSessionOrigin } from '../../utils/session'
@@ -22,6 +23,7 @@ const forwardedHeaders = async (event: Parameters<typeof getHeader>[0]) => {
 }
 
 export default defineEventHandler(async (event) => {
+  setResponseHeader(event, 'Cache-Control', 'no-store')
   const path = getRouterParam(event, 'path')
   if (!path) throw createError({ statusCode: 400, statusMessage: 'API path is required' })
   if (/^auth\/(login|refresh|logout)\/?$/i.test(path)) throw createError({ statusCode: 404 })
@@ -37,6 +39,7 @@ export default defineEventHandler(async (event) => {
       headers: await forwardedHeaders(event),
       query: getQuery(event),
       body,
+      retry: 0,
     })
     setResponseStatus(event, 200)
     return response
@@ -48,7 +51,7 @@ export default defineEventHandler(async (event) => {
       statusCode: status && status >= 400 && status < 600 ? status : 502,
       statusMessage: 'Backend request failed',
       // Preserve validation feedback (such as duplicate lead phones) for the form.
-      data: status && status >= 400 && status < 500
+      data: status && status >= 400 && (status < 500 || (status === 503 && /^clinical\/notes\/[^/]+\/translation$/.test(path)))
         ? (cause as { data?: unknown }).data
         : undefined,
       cause,

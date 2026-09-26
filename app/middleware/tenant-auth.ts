@@ -1,4 +1,7 @@
+import { prepareClinicalNavigation } from '~/utils/clinical-navigation'
+
 export default defineNuxtRouteMiddleware(async () => {
+  if (import.meta.client && !await prepareClinicalNavigation()) return abortNavigation()
   const auth = useTenantAuth()
 
   try {

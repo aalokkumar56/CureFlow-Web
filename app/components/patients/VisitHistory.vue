@@ -5,6 +5,8 @@ import { normalizeApiError } from '~/utils/api/errors'
 const props = defineProps<{
   patientId: string
   kind: 'timeline' | 'visit-chart'
+  visitId?: string
+  appointmentId?: string
 }>()
 const { $api } = useNuxtApp()
 const items = ref<ClinicalRecord[]>([])
@@ -54,6 +56,7 @@ onMounted(load)
       <h2>{{ kind === 'timeline' ? 'Patient timeline' : 'Visit chart' }}</h2>
       <button class="patients-secondary-btn" @click="load">Refresh</button>
     </header>
+    <PatientsDoctorNotes v-if="kind === 'visit-chart'" :key="patientId" :patient-id="patientId" :visit-id="visitId" :appointment-id="appointmentId" />
     <p v-if="error" class="appointments-error" role="alert">{{ error }}</p>
     <div v-if="loading" class="dashboard-state">Loading history…</div>
     <div v-else-if="!items.length && !error" class="empty-state-box">
@@ -93,7 +96,7 @@ onMounted(load)
         </dl>
         <template v-if="kind === 'visit-chart'"
           ><details
-            v-for="key in ['vitals', 'notes', 'prescriptions', 'paperNotes']"
+            v-for="key in ['vitals', 'prescriptions', 'paperNotes']"
             :key="key"
           >
             <summary>

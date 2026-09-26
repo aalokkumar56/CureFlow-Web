@@ -31,6 +31,7 @@ export const PERMISSIONS = {
   CampaignManage: "Campaign.Manage",
   ClinicalView: "Clinical.View",
   ClinicalEdit: "Clinical.Edit",
+  ClinicalTranslate: "Clinical.Translate",
   DashboardView: "Dashboard.View",
   AuditView: "Audit.View",
   SettingsView: "Settings.View",
@@ -50,7 +51,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
   doctor: [
     PERMISSIONS.DashboardView, PERMISSIONS.PatientView, PERMISSIONS.PatientEdit,
     PERMISSIONS.AppointmentView, PERMISSIONS.AppointmentCreate, PERMISSIONS.AppointmentEdit,
-    PERMISSIONS.ClinicalView, PERMISSIONS.ClinicalEdit, PERMISSIONS.ConversationView,
+    PERMISSIONS.ClinicalView, PERMISSIONS.ClinicalEdit, PERMISSIONS.ClinicalTranslate, PERMISSIONS.ConversationView,
     PERMISSIONS.StaffView,
   ],
   reception: [
@@ -157,6 +158,7 @@ export const PERMISSION_LABELS = {
   [PERMISSIONS.CampaignManage]: "Manage campaigns",
   [PERMISSIONS.ClinicalView]: "View clinical records",
   [PERMISSIONS.ClinicalEdit]: "Edit clinical records",
+  [PERMISSIONS.ClinicalTranslate]: "Translate Doctor Notes",
   [PERMISSIONS.DashboardView]: "View dashboard",
   [PERMISSIONS.AuditView]: "View audit log",
   [PERMISSIONS.SettingsView]: "View settings",

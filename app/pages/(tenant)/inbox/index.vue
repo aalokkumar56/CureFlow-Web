@@ -13,6 +13,8 @@ const { conversations, templates, status, loading, error, loadConversations, loa
 const query = ref('')
 const selectedId = ref<string | number | null>(null)
 const canView = computed(() => hasPermission(auth.user.value, PERMISSIONS.ConversationView))
+const canSend = computed(() => hasPermission(auth.user.value, PERMISSIONS.ConversationManage))
+const canManageWhatsApp = computed(() => hasPermission(auth.user.value, PERMISSIONS.WhatsAppManage))
 const whatsappDisabled = computed(() => Boolean(status.value && (!status.value.enabled || !status.value.is_configured)))
 const filteredConversations = computed(() => {
   const search = query.value.trim().toLowerCase()
@@ -39,7 +41,11 @@ watch(filteredConversations, (items) => {
 let timer: ReturnType<typeof setInterval> | undefined
 onMounted(async () => {
   if (!canView.value) return
-  await Promise.all([loadConversations(), loadStatus(), loadTemplates()])
+  await loadConversations()
+  // Read-only inbox users can see conversations, but must not request
+  // messaging configuration or reusable templates they cannot access.
+  if (canManageWhatsApp.value) await loadStatus()
+  if (canSend.value) await loadTemplates()
   timer = setInterval(() => loadConversations('', true), 10000)
 })
 onUnmounted(() => { if (timer) clearInterval(timer) })
