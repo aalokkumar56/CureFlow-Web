@@ -23,6 +23,7 @@ export default defineNuxtConfig({
 
   vite: {
     plugins: [tailwindcss()],
+    optimizeDeps: { include: ['axios'] },
   },
 
   pages: true,
@@ -35,6 +36,8 @@ export default defineNuxtConfig({
   },
 
   routeRules: {
+    '/platform/**': { ssr: false },
+    '/platform': { ssr: false },
     '/login': { ssr: true },
     '/register': { ssr: true },
   },

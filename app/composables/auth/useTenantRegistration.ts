@@ -2,6 +2,7 @@ import { useTenantAuth } from '~/composables/auth/useTenantAuth'
 
 export interface TenantRegistrationPayload {
   hospitalName: string
+  tenantType: string
   adminName: string
   email: string
   password: string
@@ -20,6 +21,7 @@ export const useTenantRegistration = () => {
     try {
       await $api.post('/auth/register-tenant', {
         hospitalName: payload.hospitalName,
+        tenantType: payload.tenantType || 'Hospital',
         adminName: payload.adminName,
         adminEmail: payload.email,
         adminPassword: payload.password,

@@ -7,7 +7,15 @@ definePageMeta({ layout: 'auth' })
 const toast = useToast()
 const router = useRouter()
 const { register, loading } = useTenantRegistration()
-const form = reactive({ hospitalName: '', adminName: '', email: '', password: '', phone: '' })
+const form = reactive({ hospitalName: '', tenantType: 'Hospital', adminName: '', email: '', password: '', phone: '' })
+const tenantTypes = [
+  { value: 'Hospital', label: 'Hospital' },
+  { value: 'Clinic', label: 'Clinic' },
+  { value: 'NursingHome', label: 'Nursing home' },
+  { value: 'Laboratory', label: 'Laboratory' },
+  { value: 'Pharmacy', label: 'Pharmacy' },
+  { value: 'Other', label: 'Other healthcare facility' },
+]
 const errorMessage = ref('')
 
 const submit = async () => {
@@ -26,11 +34,13 @@ const submit = async () => {
 
 <template>
   <section class="auth-card auth-card-wide">
-    <AuthBrand subtitle="Register your hospital on CureFlow — 14-day trial, no credit card." />
-    <div class="auth-heading"><h1>Register your hospital</h1><p>Set up a secure workspace for your team.</p></div>
+    <AuthBrand subtitle="Register your healthcare business on CureFlow — 14-day trial, no credit card." />
+    <div class="auth-heading"><h1>Register your healthcare business</h1><p>Set up a secure workspace for your team.</p></div>
     <ValidatedForm :error="errorMessage" class="auth-form" data-testid="signup-form" @submit.prevent="submit">
       <label for="hospital-name">Hospital name</label>
       <div class="auth-input"><PhBuildings :size="18" /><input id="hospital-name" v-model.trim="form.hospitalName" name="hospitalName" data-contains-alphanumeric data-testid="signup-hospital-name" type="text" autocomplete="organization" placeholder="City Hospital" required></div>
+      <label for="tenant-type">Facility type</label>
+      <div class="auth-input"><PhBuildings :size="18" /><select id="tenant-type" v-model="form.tenantType" name="tenantType" data-testid="signup-tenant-type" required><option v-for="type in tenantTypes" :key="type.value" :value="type.value">{{ type.label }}</option></select></div>
       <label for="admin-name">Admin name</label>
       <div class="auth-input"><PhUser :size="18" /><input id="admin-name" v-model.trim="form.adminName" name="adminName" data-testid="signup-admin-name" type="text" autocomplete="name" placeholder="Dr. Admin" required></div>
       <label for="signup-email">Admin email</label>

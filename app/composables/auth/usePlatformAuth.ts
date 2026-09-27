@@ -3,7 +3,7 @@ import {
   platformBootstrap,
   platformLogin,
   platformLogout,
-} from '~/utils/auth/platformClient'
+} from '../../utils/auth/platformClient'
 
 export const usePlatformAuth = () => {
   const token = useState<string | null>(
