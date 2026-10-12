@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import TenantShell from '~/components/tenant/layout/TenantShell.vue'
+import TenantSessionGuard from '~/components/tenant/layout/TenantSessionGuard.vue'
 </script>
 
 <template>
-  <TenantShell>
+  <TenantSessionGuard><TenantShell>
     <slot />
-  </TenantShell>
+  </TenantShell></TenantSessionGuard>
 </template>

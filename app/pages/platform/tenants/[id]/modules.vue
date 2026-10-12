@@ -23,7 +23,8 @@ const rows = computed(() =>
 const enabledCount = computed(() => (data.value || []).filter((r) => r.effective).length)
 const initial = computed(() => ({
   ...editing.value,
-  mode: editing.value?.source === 'tenant' ? (editing.value.isEnabled ? 'grant' : 'revoke') : 'inherit',
+  mode:
+    editing.value?.source === 'tenant' ? (editing.value.isEnabled ? 'grant' : 'revoke') : 'inherit',
   reason: '',
 }))
 const fields: PlatformField[] = [
@@ -38,7 +39,14 @@ const fields: PlatformField[] = [
       { value: 'revoke', label: 'Revoke access for this tenant' },
     ],
   },
-  { key: 'limit', label: 'Contracted usage limit (optional)', type: 'number', min: 0, max: 100000000, help: 'Records the contracted limit; module-specific metering is separate.' },
+  {
+    key: 'limit',
+    label: 'Contracted usage limit (optional)',
+    type: 'number',
+    min: 0,
+    max: 100000000,
+    help: 'Records the contracted limit; module-specific metering is separate.',
+  },
   { key: 'expiresAt', label: 'Override expires (optional)', type: 'datetime-local' },
   { key: 'reason', label: 'Reason for change', required: true, min: 3, max: 500 },
 ]
@@ -67,6 +75,10 @@ const submit = async (value: Record<string, PlatformValue>) => {
   )
     editing.value = null
 }
+const beginEdit = (row: PlatformRow) => {
+  editing.value = row
+  error.value = null
+}
 onMounted(load)
 </script>
 <template>
@@ -77,7 +89,10 @@ onMounted(load)
         <div>
           <p class="platform-eyebrow">Tenant configuration</p>
           <h1>Modules</h1>
-          <p>Grant or revoke module access for this tenant. Individual overrides take priority over the subscription plan.</p>
+          <p>
+            Grant or revoke module access for this tenant. Individual overrides take priority over
+            the subscription plan.
+          </p>
         </div>
         <div class="platform-page-heading-actions">
           <span class="platform-badge is-positive is-large">{{ enabledCount }} enabled</span>
@@ -85,7 +100,8 @@ onMounted(load)
       </div>
 
       <div class="platform-info-banner">
-        Plan access applies automatically. Use tenant overrides to grant or revoke a specific module, or restore plan policy at any time.
+        Plan access applies automatically. Use tenant overrides to grant or revoke a specific
+        module, or restore plan policy at any time.
       </div>
 
       <PlatformForm
@@ -103,7 +119,11 @@ onMounted(load)
         <input v-model="search" type="search" placeholder="Search modules" />
       </label>
 
-      <PlatformState :loading="loading" :error="editing ? undefined : error" :empty="!rows.length" @retry="load">
+      <PlatformState
+        :loading="loading"
+        :error="editing ? undefined : error"
+        :empty="!rows.length"
+        @retry="load">
         <div class="platform-module-grid">
           <article v-for="row in rows" :key="String(row.moduleId)" class="platform-module-card">
             <div class="platform-card-heading">
@@ -135,7 +155,7 @@ onMounted(load)
               v-if="access.can('entitlements.write')"
               type="button"
               class="platform-secondary-button"
-              @click="editing = row; error = null">
+              @click="beginEdit(row)">
               Manage access
             </button>
           </article>

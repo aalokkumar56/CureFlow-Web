@@ -1,18 +1,22 @@
 import { prepareClinicalNavigation } from '~/utils/clinical-navigation'
+import { useTenantModules } from '~/composables/tenant/useTenantModules'
+import { tenantModuleForPath } from '~/utils/tenant-modules'
 
-export default defineNuxtRouteMiddleware(async () => {
-  if (import.meta.client && !await prepareClinicalNavigation()) return abortNavigation()
+export default defineNuxtRouteMiddleware(async (to) => {
+  if (import.meta.client && !(await prepareClinicalNavigation())) return abortNavigation()
   const auth = useTenantAuth()
+  const modules = useTenantModules()
 
   try {
     await auth.refreshSession()
+    await modules.load(true)
+    const required = tenantModuleForPath(to.path)
+    if (required && !modules.canAccess(required)) {
+      return navigateTo(modules.firstAvailableRoute())
+    }
   } catch {
-    auth.token.value = null
-    auth.user.value = null
-    auth.tenant.value = null
-      // Any failed session validation must end in the login flow. This avoids
-      // exposing an internal validation error page for expired or unavailable
-      // sessions and guarantees a clean authentication state.
-      return navigateTo('/login')
+    if (import.meta.client && auth.identity.value) return abortNavigation()
+    auth.reset()
+    return navigateTo('/login?session=unavailable')
   }
 })

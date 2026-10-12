@@ -136,7 +136,7 @@ test('server validation maps snake/Pascal field names and keeps unrelated messag
   await vue.nextTick()
   assert.equal(form.issues.value.length, 1)
   const input = form.form.value.querySelector('input')
-  assert.match(input.getAttribute('aria-describedby'), /^hint test-0-field$/)
+  assert.equal(input.getAttribute('aria-describedby'), 'hint')
   input.value = 'other@example.com'
   form.update({ target: input })
   assert.equal(input.getAttribute('aria-describedby'), 'hint')
@@ -163,22 +163,24 @@ test('disabled submit controls and events from another form cannot trigger a sav
   form.stop()
 })
 
-test('field errors appear while typing and on blur before the first submission', () => {
+test('field errors appear after submit and update as fields are corrected', () => {
   const form = setupForm()
   form.form.value.innerHTML =
     '<label>Email<input name="email" type="email" required></label><label>Phone<input name="phone" type="tel" data-min-digits="10" data-max-digits="15"></label>'
   const email = form.form.value.querySelector('[name=email]')
   const phone = form.form.value.querySelector('[name=phone]')
   form.update({ target: email, type: 'focusout' })
-  assert.match(form.issues.value[0].message, /required/)
+  assert.equal(form.issues.value.length, 0)
   email.value = 'bad-email'
   form.update({ target: email, type: 'input' })
-  assert.match(form.issues.value[0].message, /valid email/)
+  assert.equal(form.issues.value.length, 0)
   phone.value = '123'
   form.update({ target: phone, type: 'input' })
-  assert.match(form.issues.value.find((item) => item.control === phone).message, /10 to 15 digits/)
+  assert.equal(form.issues.value.length, 0)
   form.validate({ target: form.form.value })
   assert.equal(form.emitted.length, 0)
+  assert.match(form.issues.value.find((item) => item.control === email).message, /valid email/)
+  assert.match(form.issues.value.find((item) => item.control === phone).message, /10 to 15 digits/)
   phone.value = '+91 98765 43210'
   email.value = 'alex@example.com'
   form.update({ target: phone, type: 'input' })

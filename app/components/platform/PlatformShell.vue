@@ -5,17 +5,24 @@ const route = useRoute()
 const auth = usePlatformAuth()
 const access = usePlatformAccess()
 const navigation = computed(() => platformNavigation.filter((item) => access.can(item.permission)))
+const signingOut = ref(false)
+const signOutError = ref('')
 const signOut = async () => {
-  auth.logout()
-  access.user.value = null
-  await navigateTo('/platform/login')
+  signingOut.value = true
+  signOutError.value = ''
+  try {
+    const result = await auth.logout()
+    await navigateTo(result.revoked ? '/platform/login' : '/platform/login?logout=local-only')
+  } catch {
+    signOutError.value = 'Sign-out could not be confirmed. Check your connection and try again.'
+  } finally { signingOut.value = false }
 }
 const isActive = (item: { route: string }) =>
   route.path === item.route ||
   (item.route !== '/platform' && route.path.startsWith(item.route + '/')) ||
   (item.route !== '/platform' && route.path.startsWith(item.route))
 const pagePermission = computed(
-  () => platformNavigation.find((item) => route.path.startsWith(item.route))?.permission,
+  () => platformNavigation.find((item) => route.path === item.route || (item.route !== '/platform' && route.path.startsWith(item.route + '/')))?.permission,
 )
 const allowed = computed(() => !pagePermission.value || access.can(pagePermission.value))
 </script>
@@ -38,9 +45,10 @@ const allowed = computed(() => !pagePermission.value || access.can(pagePermissio
           {{ item.label }}
         </NuxtLink>
       </nav>
-      <button type="button" class="platform-signout" @click="signOut">Sign out</button>
+      <button type="button" class="platform-signout" :disabled="signingOut" @click="signOut">{{ signingOut ? 'Signing out…' : 'Sign out' }}</button>
     </header>
     <main class="platform-main">
+      <p v-if="signOutError" role="alert">{{ signOutError }}</p>
       <slot v-if="allowed" />
       <section v-else class="platform-tenants-state" role="alert">
         Your permission group does not allow access to this page.

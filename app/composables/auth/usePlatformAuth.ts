@@ -1,73 +1,28 @@
-import {
-  fetchPlatformSetupStatus,
-  platformBootstrap,
-  platformLogin,
-  platformLogout,
-} from '../../utils/auth/platformClient'
+import { clearPlatformState, fetchPlatformSetupStatus, platformBootstrap, platformLogin, platformLogout, platformSession } from '../../utils/auth/platformClient'
+import type { PlatformUser } from '~/utils/platform'
 
 export const usePlatformAuth = () => {
-  const token = useState<string | null>(
-    'platform-auth-token',
-    () => null,
-  )
-
-  const user = useState<any | null>(
-    'platform-auth-user',
-    () => null,
-  )
-
-  const initialize = () => {
+  const user = useState<PlatformUser | null>('platform-current-user', () => null)
+  const initialize = async () => {
     if (!import.meta.client) return
-
-    token.value = localStorage.getItem(
-      'cureflow_platform_token',
-    )
+    localStorage.removeItem('cureflow_platform_token')
+    sessionStorage.removeItem('cureflow_platform_token')
+    try { user.value = (await platformSession()).user }
+    catch (error: any) {
+      clearPlatformState()
+      if (error.response?.status !== 401) throw error
+    }
   }
-
-  const login = async (
-    email: string,
-    password: string,
-  ) => {
+  const login = async (email: string, password: string) => {
     const response = await platformLogin(email, password)
-
-    token.value = response.access_token
-
+    user.value = response.user
     return response
   }
-
-  const bootstrap = async (data: {
-    name: string
-    email: string
-    password: string
-  }) => {
+  const bootstrap = async (data: { name: string; email: string; password: string }) => {
     const response = await platformBootstrap(data)
-
-    token.value = response.access_token
-
+    user.value = response.user
     return response
   }
-
-  const setupStatus = () =>
-    fetchPlatformSetupStatus()
-
-  const logout = () => {
-    token.value = null
-    user.value = null
-    platformLogout()
-  }
-
-  const isAuthenticated = computed(
-    () => !!token.value,
-  )
-
-  return {
-    token,
-    user,
-    isAuthenticated,
-    initialize,
-    login,
-    bootstrap,
-    setupStatus,
-    logout,
-  }
+  return { user, isAuthenticated: computed(() => !!user.value), initialize, login, bootstrap,
+    setupStatus: fetchPlatformSetupStatus, logout: platformLogout }
 }

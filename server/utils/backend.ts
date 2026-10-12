@@ -7,9 +7,12 @@ export const backendBaseUrl = (event: Parameters<typeof getHeader>[0]) => {
   return /\/api$/i.test(configured) ? configured : `${configured}/api`
 }
 
-export const backendAuthHeaders = async (event: Parameters<typeof getHeader>[0]) => {
-  const authorization = getHeader(event, 'authorization')
-  if (authorization) return { Authorization: authorization }
+export const backendAuthHeaders = async (event: Parameters<typeof getHeader>[0], platform = false) => {
+  if (platform) {
+    const { platformAccessToken } = await import('./platform-session')
+    const token = platformAccessToken(event)
+    return token ? { Authorization: `Bearer ${token}` } : undefined
+  }
   const { sessionAccessToken } = await import('./session')
   const session = await sessionAccessToken(event)
   return session
@@ -17,21 +20,12 @@ export const backendAuthHeaders = async (event: Parameters<typeof getHeader>[0])
     : undefined
 }
 
-/**
- * Local .NET development commonly uses a self-signed HTTPS certificate. Keep
- * production TLS validation strict while allowing that certificate only when
- * Nuxt is running in development mode.
- */
-export const fetchBackend = async <T>(url: string, options?: BackendFetchOptions): Promise<T> => {
-  const isLocalDevelopmentCertificate = import.meta.dev && /^https:\/\/(localhost|127\.0\.0\.1)(:|\/)/i.test(url)
-  if (!isLocalDevelopmentCertificate) return await $fetch<T>(url, options)
+// Node's trust store applies to every request. Development HTTPS certificates
+// must be trusted explicitly (NODE_EXTRA_CA_CERTS); never disable verification.
+export const fetchBackend = <T>(url: string, options?: BackendFetchOptions): Promise<T> =>
+  $fetch<T>(url, options) as Promise<T>
 
-  const previous = process.env.NODE_TLS_REJECT_UNAUTHORIZED
-  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
-  try {
-    return await $fetch<T>(url, options)
-  } finally {
-    if (previous === undefined) delete process.env.NODE_TLS_REJECT_UNAUTHORIZED
-    else process.env.NODE_TLS_REJECT_UNAUTHORIZED = previous
-  }
-}
+export const fetchBackendRaw = (url: string, options?: BackendFetchOptions) =>
+  $fetch.raw<ReadableStream<Uint8Array>>(url, {
+    ...options, responseType: 'stream', ignoreResponseError: true, redirect: 'manual', retry: 0,
+  })

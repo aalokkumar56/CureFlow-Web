@@ -22,11 +22,12 @@ export function useClinicalSpeech(append: (text: string) => void) {
   let finishStop: (() => void) | null = null
   let stopTimer: ReturnType<typeof setTimeout> | undefined
   let disposed = false
-  onMounted(() => {
-    const host = window as SpeechWindow
-    supported.value = !!(host.SpeechRecognition || host.webkitSpeechRecognition)
-  })
+  // Browser recognition may transmit audio to an unspecified external service.
+  // BE-025 exposes translation approval, but no approved browser-speech contract.
+  // Browser capability or microphone permission must never stand in for approval.
+  const availabilityMessage = 'Voice input is unavailable until an approved speech service is configured. You can type your note.'
   function start(language: NoteLanguage) {
+    if (!supported.value) { speechError.value = availabilityMessage; return }
     if (recognition || disposed) return
     const host = window as SpeechWindow
     const Engine = host.SpeechRecognition || host.webkitSpeechRecognition
@@ -94,7 +95,7 @@ export function useClinicalSpeech(append: (text: string) => void) {
     if (recognition) { recognition.onresult = null; recognition.onend = null; recognition.abort() }
     finishStop?.()
   })
-  return { recording, interim, speechError, supported, start, stop }
+  return { recording, interim, speechError, supported, availabilityMessage, start, stop }
 }
 
 export function useClinicalReadAloud() {
@@ -112,10 +113,13 @@ export function useClinicalReadAloud() {
     readError.value = ''
     readNotice.value = ''
     if (!('speechSynthesis' in window)) { readError.value = 'Read aloud is unavailable in this browser.'; return }
-    const voices = window.speechSynthesis.getVoices()
+    const voices = window.speechSynthesis.getVoices().filter(voice => voice.localService === true)
     const voice = voices.find(v => v.lang.toLowerCase() === language.toLowerCase()) ||
       voices.find(v => v.lang.split('-')[0] === language.split('-')[0])
-    if (!voice) readNotice.value = 'A matching voice is not installed. Using your browser’s default voice; pronunciation may be less accurate.'
+    if (!voice) {
+      readNotice.value = 'A local voice for this language is not installed. The original text remains available on screen.'
+      return
+    }
     // Short utterances avoid browsers silently truncating long clinical notes.
     const chunks = text.match(/[\s\S]{1,180}(?:\s|$)|[\s\S]{1,180}/g) || []
     const current = generation

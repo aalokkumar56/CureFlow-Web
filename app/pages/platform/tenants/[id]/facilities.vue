@@ -21,7 +21,6 @@ const route = useRoute()
         { key: 'isActive', label: 'Active' },
       ]"
       :defaults="{ country: 'IN', isActive: true, isPrimary: false }"
-      create
-    />
+      create />
   </PlatformShell>
 </template>

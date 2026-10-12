@@ -7,6 +7,8 @@ const { data, loading, error, load } = usePlatformResource<PlatformRow[]>(() => 
 const search = ref('')
 const status = ref('')
 const type = ref('')
+const page = ref(1)
+const pageSize = 25
 const statuses = enumOptions(['pending_approval', 'active', 'suspended', 'rejected'])
 const types = enumOptions(['hospital', 'clinic', 'nursing_home', 'laboratory', 'pharmacy', 'other'])
 const rows = computed(() =>
@@ -17,8 +19,16 @@ const rows = computed(() =>
       [t.name, t.slug, t.contactEmail].join(' ').toLowerCase().includes(search.value.toLowerCase()),
   ),
 )
+const visibleRows = computed(() => rows.value.slice((page.value - 1) * pageSize, page.value * pageSize))
+const pageCount = computed(() => Math.max(1, Math.ceil(rows.value.length / pageSize)))
+watch([search, status, type], () => { page.value = 1 })
 const statusClass = (s: unknown) =>
-  ({ active: 'is-positive', pending_approval: 'is-warn', suspended: 'is-negative', rejected: 'is-muted' })[String(s)] || ''
+  ({
+    active: 'is-positive',
+    pending_approval: 'is-warn',
+    suspended: 'is-negative',
+    rejected: 'is-muted',
+  })[String(s)] || ''
 onMounted(load)
 </script>
 <template>
@@ -31,11 +41,13 @@ onMounted(load)
           <p>Manage healthcare businesses registered with CureFlow.</p>
         </div>
         <div class="platform-page-heading-actions">
-          <button type="button" class="platform-secondary-button" :disabled="loading" @click="load">Refresh</button>
+          <button type="button" class="platform-secondary-button" :disabled="loading" @click="load">
+            Refresh
+          </button>
         </div>
       </div>
-      <div class="platform-filter-panel" style="padding:16px 20px">
-        <div class="platform-form-grid" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:0">
+      <div class="platform-filter-panel platform-filter-panel-compact">
+        <div class="platform-form-grid platform-form-grid-three">
           <label>
             Search
             <input v-model="search" type="search" placeholder="Name, email or slug" />
@@ -58,7 +70,7 @@ onMounted(load)
       </div>
       <PlatformState :loading="loading" :error="error" :empty="!rows.length" @retry="load">
         <div class="platform-tenant-list">
-          <article v-for="tenant in rows" :key="tenant.id" class="platform-tenant-card">
+          <article v-for="tenant in visibleRows" :key="tenant.id" class="platform-tenant-card">
             <div class="platform-tenant-info">
               <NuxtLink :to="'/platform/tenants/' + tenant.id" class="platform-tenant-name">
                 {{ tenant.name }}
@@ -66,7 +78,9 @@ onMounted(load)
               <small>
                 {{ displayPlatformValue(tenant.tenantType) }}
                 <template v-if="tenant.contactEmail"> · {{ tenant.contactEmail }}</template>
-                <template v-if="tenant.plan"> · {{ displayPlatformValue(tenant.plan) }} plan</template>
+                <template v-if="tenant.plan">
+                  · {{ displayPlatformValue(tenant.plan) }} plan</template
+                >
               </small>
             </div>
             <div class="platform-tenant-actions">
@@ -79,9 +93,14 @@ onMounted(load)
             </div>
           </article>
         </div>
-        <p v-if="rows.length" class="platform-muted" style="margin-top:14px;font-size:12px">
+        <p v-if="rows.length" class="platform-muted platform-result-count">
           {{ rows.length }} tenant{{ rows.length !== 1 ? 's' : '' }}
         </p>
+        <div v-if="pageCount > 1" class="platform-modal-actions platform-pagination">
+          <button type="button" class="platform-secondary-button" :disabled="page === 1" @click="page--">Previous</button>
+          <span class="platform-page-number">Page {{ page }} of {{ pageCount }}</span>
+          <button type="button" class="platform-secondary-button" :disabled="page === pageCount" @click="page++">Next</button>
+        </div>
       </PlatformState>
     </section>
   </PlatformShell>

@@ -23,7 +23,10 @@ const submit = async (value: Record<string, PlatformValue>) => {
   if (!editing.value || busy.value) return
   busy.value = true
   try {
-    await platformPut('/platform/plans/' + selected.value + '/modules/' + editing.value.moduleId, value)
+    await platformPut(
+      '/platform/plans/' + selected.value + '/modules/' + editing.value.moduleId,
+      value,
+    )
     editing.value = null
     toast.show('Plan module policy saved.')
     await load()
@@ -33,8 +36,20 @@ const submit = async (value: Record<string, PlatformValue>) => {
     busy.value = false
   }
 }
-const choose = (value: string) => { selected.value = value; editing.value = null }
-const planLabels: Record<string, string> = { trial: 'Trial', starter: 'Starter', growth: 'Growth', enterprise: 'Enterprise' }
+const choose = (value: string) => {
+  selected.value = value
+  editing.value = null
+}
+const beginEdit = (item: PlanModule) => {
+  editing.value = item
+  error.value = null
+}
+const planLabels: Record<string, string> = {
+  trial: 'Trial',
+  starter: 'Starter',
+  growth: 'Growth',
+  enterprise: 'Enterprise',
+}
 const enabledCount = computed(() => plan.value?.modules.filter((m) => m.isEnabled).length ?? 0)
 onMounted(load)
 </script>
@@ -45,15 +60,21 @@ onMounted(load)
         <div>
           <p class="platform-eyebrow">Commercial configuration</p>
           <h1>Subscription plans</h1>
-          <p>Define which modules are included in each plan. Tenant-level overrides always take priority.</p>
+          <p>
+            Define which modules are included in each plan. Tenant-level overrides always take
+            priority.
+          </p>
         </div>
         <div class="platform-page-heading-actions">
-          <NuxtLink to="/platform/modules" class="platform-secondary-button">View module catalog</NuxtLink>
+          <NuxtLink to="/platform/modules" class="platform-secondary-button"
+            >View module catalog</NuxtLink
+          >
         </div>
       </div>
 
       <div class="platform-info-banner">
-        Changes apply to every tenant on this plan that uses its default policy. To override access for a specific tenant, open that tenant's Modules page.
+        Changes apply to every tenant on this plan that uses its default policy. To override access
+        for a specific tenant, open that tenant's Modules page.
       </div>
 
       <nav class="platform-tabs" aria-label="Subscription plans">
@@ -73,14 +94,24 @@ onMounted(load)
         :initial="initial"
         :busy="busy"
         :error="error"
-        :title="(planLabels[selected] || displayPlatformValue(selected)) + ' plan · ' + editing.name"
+        :title="
+          (planLabels[selected] || displayPlatformValue(selected)) + ' plan · ' + editing.name
+        "
         @save="submit"
         @cancel="editing = null" />
 
-      <PlatformState :loading="loading" :error="editing ? undefined : error" :empty="!plan" @retry="load">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
-          <span class="platform-badge is-positive is-large">{{ enabledCount }} modules included</span>
-          <span class="platform-badge is-muted is-large">{{ (plan?.modules.length ?? 0) - enabledCount }} not included</span>
+      <PlatformState
+        :loading="loading"
+        :error="editing ? undefined : error"
+        :empty="!plan"
+        @retry="load">
+        <div class="platform-summary-badges">
+          <span class="platform-badge is-positive is-large"
+            >{{ enabledCount }} modules included</span
+          >
+          <span class="platform-badge is-muted is-large"
+            >{{ (plan?.modules.length ?? 0) - enabledCount }} not included</span
+          >
         </div>
         <div class="platform-module-grid">
           <article v-for="item in plan?.modules" :key="item.moduleId" class="platform-module-card">
@@ -91,15 +122,17 @@ onMounted(load)
               </span>
             </div>
             <p>
-              {{ item.isEnabled
-                ? 'Available to tenants using this plan\'s default access.'
-                : 'Requires an individual tenant grant to enable access.' }}
+              {{
+                item.isEnabled
+                  ? "Available to tenants using this plan's default access."
+                  : 'Requires an individual tenant grant to enable access.'
+              }}
             </p>
             <button
               v-if="access.can('modules.write')"
               class="platform-secondary-button"
               type="button"
-              @click="editing = item; error = null">
+              @click="beginEdit(item)">
               Change plan access
             </button>
           </article>

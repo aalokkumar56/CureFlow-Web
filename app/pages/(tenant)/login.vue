@@ -8,6 +8,10 @@ const auth = useTenantAuth()
 const form = reactive({ email: '', password: '' })
 const loading = ref(false)
 const errorMessage = ref('')
+const route = useRoute()
+const notice = computed(() => route.query.logout === 'local-only'
+  ? 'Signed out on this browser. Server session revocation could not be confirmed; contact your administrator if this device was shared.'
+  : route.query.session === 'unavailable' ? 'Session verification is unavailable. Please try signing in again.' : '')
 
 const submit = async () => {
   errorMessage.value = ''
@@ -29,6 +33,7 @@ const submit = async () => {
   <section class="auth-card">
     <AuthBrand subtitle="Sign in to manage your hospital operations." />
     <div class="auth-heading"><h1>Welcome back</h1><p>Sign in to continue to your workspace.</p></div>
+    <p v-if="notice" role="status">{{ notice }}</p>
     <ValidatedForm :error="errorMessage" class="auth-form" data-testid="login-form" @submit.prevent="submit">
       <label for="login-email">Email address</label>
       <div class="auth-input"><PhEnvelopeSimple :size="18" /><input id="login-email" v-model.trim="form.email" name="email" data-testid="login-email" type="email" autocomplete="email" placeholder="Enter your email" required></div>

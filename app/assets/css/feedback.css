@@ -25,6 +25,15 @@
   overflow-wrap: anywhere;
   margin-top: 5px;
 }
+.field-validation {
+  display: block;
+  min-width: 0;
+}
+.validated-form label:has([aria-invalid='true']) .auth-input,
+.validated-form label:has([aria-invalid='true']) .platform-input {
+  border-color: var(--cf-danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cf-danger) 14%, transparent);
+}
 .validation-summary {
   grid-column: 1 / -1;
   color: var(--cf-danger);

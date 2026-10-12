@@ -88,17 +88,20 @@ function addIssue(el: Control, text: string) {
   clearIssue(el)
   const issueId = `${id}-${controls().indexOf(el)}`
   el.setAttribute('aria-invalid', 'true')
-  el.setAttribute(
-    'aria-describedby',
-    [el.getAttribute('aria-describedby'), `${issueId}-field`].filter(Boolean).join(' '),
-  )
+  // Associate both the existing hint and the error with the field.
+  const describedBy = (el.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean)
+  el.setAttribute('aria-describedby', [...new Set([...describedBy, `${issueId}-field`])].join(' '))
   const target = document.createElement('span')
   target.className = 'field-validation'
-  const anchor = el.closest('.auth-input, .platform-input') || el
-  anchor.insertAdjacentElement('afterend', target)
+  // Keep the message inside the field's label so it belongs to the control's
+  // layout instead of appearing as a detached form-level message.
+  const container = el.closest('label') || el.closest('.auth-field, .platform-field')
+  if (container) container.appendChild(target)
+  else el.insertAdjacentElement('afterend', target)
   issues.value = [...issues.value, { control: el, message: text, id: issueId, target }]
 }
 let submitting = false
+let hasSubmitted = false
 function validate(event: Event) {
   if (event.target !== form.value || submitting) return
   const buttons = Array.from(
@@ -107,6 +110,7 @@ function validate(event: Event) {
     ) || [],
   )
   if (buttons.length && buttons.every((button) => button.disabled)) return
+  hasSubmitted = true
   issues.value.slice().forEach((item) => clearIssue(item.control))
   for (const el of controls()) {
     const text = message(el)
@@ -128,21 +132,24 @@ function validate(event: Event) {
 function update(event: Event) {
   const el = event.target as Control
   if (!controls().includes(el)) return
-  // Validate nonempty values immediately, and empty required fields after blur.
-  if (el.value || event.type === 'focusout' || issues.value.some((item) => item.control === el)) {
+  // Do not show validation while the user is merely filling the form. After
+  // the first submit, update the field immediately as it is corrected.
+  if (hasSubmitted) {
     clearIssue(el)
     const text = message(el)
     if (text) addIssue(el, text)
   }
-  for (const dependent of controls().filter(
-    (control) =>
-      control !== el &&
-      (control.dataset.matches === el.name || control.dataset.after === el.name) &&
-      control.value,
-  )) {
-    clearIssue(dependent)
-    const text = message(dependent)
-    if (text) addIssue(dependent, text)
+  if (hasSubmitted) {
+    for (const dependent of controls().filter(
+      (control) =>
+        control !== el &&
+        (control.dataset.matches === el.name || control.dataset.after === el.name) &&
+        control.value,
+    )) {
+      clearIssue(dependent)
+      const text = message(dependent)
+      if (text) addIssue(dependent, text)
+    }
   }
 }
 

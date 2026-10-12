@@ -13,6 +13,10 @@ const loading = ref(true)
 const loadError = ref('')
 const creating = ref(false)
 const serverVersion = ref<DoctorNote | null>(null)
+const reviewing = ref(false)
+let reviewGeneration = 0
+let openingGeneration = 0
+let listGeneration = 0
 const readLanguage = reactive<Record<string, string>>({})
 const translations = reactive<Record<string, { text: string; language: string; revision: number }>>(
   {},
@@ -39,6 +43,7 @@ function windowOpen(record: DoctorNote) {
   )
 }
 const read = useClinicalReadAloud()
+watch(auth.authority, state => { if (state !== 'verified') read.stop() })
 const { speaking, readError, readNotice } = read
 const canCreate = computed(
   () =>
@@ -54,6 +59,19 @@ const editor = useDoctorNoteEditor((saved) => {
 const { note, fields, language, dirty, saving, error, conflict, online, editable, lastSaved } =
   editor
 const { recording, interim, speechError, supported } = editor.speech
+watch(() => [props.patientId, props.visitId, props.appointmentId, note.value?.id, auth.identity.value, auth.epoch.value], () => {
+  reviewGeneration++
+  serverVersion.value = null
+}, { flush: 'sync' })
+watch(conflict, active => {
+  if (active) { reviewGeneration++; serverVersion.value = null }
+}, { flush: 'sync' })
+const reviewedVersionMatches = computed(() => !!serverVersion.value && !!note.value &&
+  serverVersion.value.id === note.value.id && serverVersion.value.patient_id === props.patientId &&
+  serverVersion.value.patient_id === note.value.patient_id && serverVersion.value.visit_id === note.value.visit_id &&
+  serverVersion.value.appointment_id === note.value.appointment_id &&
+  serverVersion.value.author_user_id === note.value.author_user_id &&
+  serverVersion.value.revision >= note.value.revision)
 const hasSignInError = computed(() =>
   String(error.value || '')
     .toLowerCase()
@@ -73,7 +91,7 @@ const voiceNoteUnavailableReason = computed(() => {
   if (!editable.value)
     return 'This note is no longer open for editing, so voice input is unavailable.'
   if (!supported.value)
-    return 'Voice input is not available in this browser session. Open the page in the regular Chrome browser and refresh. If it is still unavailable, type your note instead.'
+    return editor.speech.availabilityMessage
   return ''
 })
 const statusLabel = (n: DoctorNote) =>
@@ -82,11 +100,17 @@ const date = (value: string | null) => (value ? new Date(value).toLocaleString()
 const languageLabel = (value: string) =>
   noteLanguages.find((l) => l.value === value)?.label || 'Language not recorded'
 async function load() {
+  const current = ++listGeneration
+  const patientId = props.patientId
+  const identity = auth.identity.value
+  const epoch = auth.epoch.value
+  const fresh = () => alive && current === listGeneration && props.patientId === patientId &&
+    auth.identity.value === identity && auth.epoch.value === epoch
   loading.value = true
   loadError.value = ''
   try {
-    const result = await $api.get<DoctorNote[]>(`/clinical/notes/patient/${props.patientId}`)
-    if (alive) {
+    const result = await $api.get<DoctorNote[]>(`/clinical/notes/patient/${patientId}`)
+    if (fresh()) {
       // A completed note is never valid without text. These are placeholders
       // created by older releases and must not be presented as clinical records.
       const visibleRecords = result.filter(
@@ -96,9 +120,9 @@ async function load() {
       records.value = visibleRecords
     }
   } catch (cause) {
-    if (alive) loadError.value = normalizeApiError(cause, 'Doctor Notes could not be loaded.')
+    if (fresh()) loadError.value = normalizeApiError(cause, 'Doctor Notes could not be loaded.')
   } finally {
-    if (alive) loading.value = false
+    if (fresh()) loading.value = false
   }
 }
 async function loadTranslationAvailability() {
@@ -128,16 +152,25 @@ async function startNote() {
   }
 }
 async function edit(record: DoctorNote) {
+  const current = ++openingGeneration
+  const patientId = props.patientId
+  const identity = auth.identity.value
+  const epoch = auth.epoch.value
   if (note.value && !(await editor.prepareToLeave())) return
+  if (!alive || current !== openingGeneration || props.patientId !== patientId || auth.identity.value !== identity || auth.epoch.value !== epoch) return
   try {
     const fresh = await $api.get<DoctorNote>(`/clinical/notes/${record.id}`)
-    if (fresh.patient_id !== props.patientId) throw new Error('Patient association did not match.')
+    if (!alive || current !== openingGeneration || props.patientId !== patientId || auth.identity.value !== identity || auth.epoch.value !== epoch) return
+    if (fresh.id !== record.id || fresh.patient_id !== patientId || fresh.visit_id !== record.visit_id ||
+        fresh.appointment_id !== record.appointment_id || fresh.author_user_id !== record.author_user_id)
+      throw new Error('Patient or encounter association did not match.')
     editor.open(fresh)
     observe(fresh)
     serverVersion.value = null
     read.stop()
   } catch (cause) {
-    loadError.value = normalizeApiError(cause, 'The note could not be opened.')
+    if (alive && current === openingGeneration && props.patientId === patientId && auth.identity.value === identity && auth.epoch.value === epoch)
+      loadError.value = normalizeApiError(cause, 'The note could not be opened.')
   }
 }
 async function finish() {
@@ -147,15 +180,28 @@ async function finish() {
   }
 }
 async function reviewConflict() {
-  if (!note.value) return
+  if (!note.value || reviewing.value || saving.value || auth.authority.value !== 'verified') return
+  const original = { ...note.value }
+  const current = ++reviewGeneration
+  const identity = auth.identity.value
+  const epoch = auth.epoch.value
+  reviewing.value = true
+  serverVersion.value = null
   try {
-    serverVersion.value = await $api.get<DoctorNote>(`/clinical/notes/${note.value.id}`)
+    const result = await $api.get<DoctorNote>(`/clinical/notes/${original.id}`)
+    if (!alive || current !== reviewGeneration || auth.identity.value !== identity || auth.epoch.value !== epoch ||
+        auth.authority.value !== 'verified' || note.value?.id !== original.id || props.patientId !== original.patient_id) return
+    if (result.id !== original.id || result.patient_id !== original.patient_id || result.visit_id !== original.visit_id ||
+        result.appointment_id !== original.appointment_id || result.author_user_id !== original.author_user_id ||
+        !Number.isSafeInteger(result.revision) || result.revision < original.revision)
+      throw new Error('The server note did not match this patient and encounter. Keep your local text and reopen the correct note.')
+    serverVersion.value = result
   } catch (cause) {
-    error.value = normalizeApiError(cause, 'Could not retrieve the server version.')
-  }
+    if (alive && current === reviewGeneration) error.value = normalizeApiError(cause, 'Could not retrieve the server version.')
+  } finally { reviewing.value = false }
 }
 function useServerVersion() {
-  if (!serverVersion.value) return
+  if (!reviewedVersionMatches.value || !serverVersion.value || saving.value || auth.authority.value !== 'verified') return
   if (
     !window.confirm(
       'Replace the unsaved editor text with the server version? Copy any text you want to keep before continuing.',
@@ -164,6 +210,12 @@ function useServerVersion() {
     return
   editor.open(serverVersion.value)
   serverVersion.value = null
+}
+async function saveReviewedText() {
+  if (!reviewedVersionMatches.value || !serverVersion.value || saving.value || auth.authority.value !== 'verified') return
+  const reviewed = serverVersion.value
+  if (!window.confirm('Save the local text you reviewed against this server version? A newer server change will require another review.')) return
+  if (await editor.resubmitReviewed(reviewed)) serverVersion.value = null
 }
 function selectedLanguage(record: DoctorNote) {
   return readLanguage[record.id] || record.original_language
@@ -267,7 +319,7 @@ onBeforeUnmount(() => {
         }}<span v-if="note.appointment_id"> · Appointment: {{ note.appointment_id }}</span>
       </p>
       <p v-if="note.editable_until">Editable until {{ date(note.editable_until) }}</p>
-      <section class="voice-note-help" aria-label="How to add a voice note">
+      <section v-if="supported" class="voice-note-help" aria-label="How to add a voice note">
         <h4>Add a note by voice</h4>
         <ol>
           <li>Choose the language you will speak.</li>
@@ -337,18 +389,23 @@ onBeforeUnmount(() => {
         <a href="/login" target="_blank" rel="noopener">Sign in in a new tab</a>, then return here
         and save again.
       </p>
-      <button type="button" v-if="conflict" class="patients-secondary-btn" @click="reviewConflict">
-        Review server version
+      <button type="button" v-if="conflict" class="patients-secondary-btn" :disabled="reviewing || saving" @click="reviewConflict">
+        {{ reviewing ? 'Loading server version…' : 'Review server version' }}
       </button>
-      <article v-if="serverVersion" class="patient-record-card">
+      <article v-if="serverVersion && reviewedVersionMatches" class="patient-record-card" aria-label="Compare note versions">
+        <h4>Your unsaved text</h4>
+        <pre class="note-text">{{ noteText(fields) }}</pre>
         <h4>Server version · {{ date(serverVersion.updated_at) }}</h4>
         <pre class="note-text">{{ noteText(serverVersion) }}</pre>
         <p>
           Your unsaved text remains in the editor above. Compare and copy any changes you need
           before loading this version.
         </p>
-        <button type="button" class="patients-secondary-btn" @click="useServerVersion">
+        <button type="button" class="patients-secondary-btn" :disabled="saving || auth.authority.value !== 'verified'" @click="useServerVersion">
           Load server version
+        </button>
+        <button v-if="conflict" type="button" class="patients-secondary-btn" :disabled="saving || !editable || !serverVersion.can_edit" @click="saveReviewedText">
+          Save reviewed local text
         </button>
       </article>
       <footer class="note-actions">

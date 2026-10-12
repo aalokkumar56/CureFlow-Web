@@ -1,6 +1,8 @@
 export type Permission =
   typeof PERMISSIONS[keyof typeof PERMISSIONS]
 export const PERMISSIONS = {
+  JobView: 'Job.View',
+  JobRetry: 'Job.Retry',
   LeadView: "Lead.View",
   LeadCreate: "Lead.Create",
   LeadEdit: "Lead.Edit",
@@ -44,41 +46,6 @@ export const PERMISSIONS = {
   StaffDelete: "Staff.Delete",
 };
 
-/** Fallback when /auth/me has no permissions array (offline / stale session). */
-const ROLE_PERMISSIONS: Record<string, string[]> = {
-  tenant_owner: Object.values(PERMISSIONS),
-  admin: Object.values(PERMISSIONS),
-  doctor: [
-    PERMISSIONS.DashboardView, PERMISSIONS.PatientView, PERMISSIONS.PatientEdit,
-    PERMISSIONS.AppointmentView, PERMISSIONS.AppointmentCreate, PERMISSIONS.AppointmentEdit,
-    PERMISSIONS.ClinicalView, PERMISSIONS.ClinicalEdit, PERMISSIONS.ClinicalTranslate, PERMISSIONS.ConversationView,
-    PERMISSIONS.StaffView,
-  ],
-  reception: [
-    PERMISSIONS.DashboardView, PERMISSIONS.PatientView, PERMISSIONS.PatientCreate, PERMISSIONS.PatientEdit,
-    PERMISSIONS.AppointmentView, PERMISSIONS.AppointmentCreate, PERMISSIONS.AppointmentEdit,
-    PERMISSIONS.ConversationView, PERMISSIONS.ConversationManage,
-    PERMISSIONS.WhatsAppView, PERMISSIONS.WhatsAppSend,
-    PERMISSIONS.StaffView,
-  ],
-  nurse: [
-    PERMISSIONS.DashboardView, PERMISSIONS.PatientView,
-    PERMISSIONS.AppointmentView,
-    PERMISSIONS.ClinicalView, PERMISSIONS.ClinicalEdit,
-    PERMISSIONS.StaffView,
-  ],
-  marketing: [
-    PERMISSIONS.LeadView, PERMISSIONS.LeadCreate, PERMISSIONS.LeadEdit,
-    PERMISSIONS.DashboardView, PERMISSIONS.PatientView,
-    PERMISSIONS.CampaignView, PERMISSIONS.CampaignManage,
-    PERMISSIONS.WhatsAppView, PERMISSIONS.WhatsAppSend,
-  ],
-  staff: [
-    PERMISSIONS.DashboardView, PERMISSIONS.PatientView,
-    PERMISSIONS.ConversationView, PERMISSIONS.ReferralView, PERMISSIONS.ReferralManage,
-  ],
-};
-
 const ROLE_LABELS: Record<string, string> = {
   tenant_owner: "Tenant Owner",
   admin: "Admin",
@@ -115,7 +82,7 @@ export const getPermissionsForUser = (
     if (Array.isArray(user?.permissions)) {
     return user.permissions;
   }
-  return ROLE_PERMISSIONS[normalizeRole(user?.role)] || [];
+  return [];
 };
 
 export const hasPermission = (
@@ -128,6 +95,8 @@ export const hasPermission = (
 export const formatRole = (role: string | null | undefined) => ROLE_LABELS[normalizeRole(role)] || role || "—";
 
 export const PERMISSION_LABELS = {
+  [PERMISSIONS.JobView]: 'View failed background tasks',
+  [PERMISSIONS.JobRetry]: 'Retry failed background tasks',
   [PERMISSIONS.LeadView]: "View leads",
   [PERMISSIONS.LeadCreate]: "Create and import leads",
   [PERMISSIONS.LeadEdit]: "Edit leads",
@@ -169,28 +138,6 @@ export const PERMISSION_LABELS = {
   [PERMISSIONS.StaffCreate]: "Create staff profiles",
   [PERMISSIONS.StaffEdit]: "Edit staff profiles",
   [PERMISSIONS.StaffDelete]: "Delete staff profiles",
-};
-
-/** Decode permission claims from JWT when user object lacks permissions. */
-export const getPermissionsFromToken = () => {
-  if (typeof window === "undefined") return [];
-  try {
-    const token = localStorage.getItem("cureflow_token");
-    if (!token) return [];
-const payloadPart = token.split('.')[1]
-
-if (!payloadPart) {
-  return []
-}
-
-const payload = JSON.parse(
-  atob(payloadPart.replace(/-/g, '+').replace(/_/g, '/')),
-)
-    const claims = payload.permission || payload.permissions || [];
-    return Array.isArray(claims) ? claims : [claims].filter(Boolean);
-  } catch {
-    return [];
-  }
 };
 
 type PermissionUser = {

@@ -16,6 +16,7 @@
     "@pinia/nuxt": "^1.0.2",
     "axios": "^1.20.0",
     "clsx": "^2.1.1",
+    "dompurify": "^3.4.17",
     "nuxt": "^4.5.2",
     "pinia": "^4.0.3",
     "tailwind-merge": "^3.6.0",

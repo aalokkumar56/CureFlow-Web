@@ -1,4 +1,5 @@
 import { useTenantAuth } from '~/composables/auth/useTenantAuth'
+import { requestFeedback } from '~/utils/api/retry-feedback'
 
 export interface TenantRegistrationPayload {
   hospitalName: string
@@ -10,22 +11,27 @@ export interface TenantRegistrationPayload {
 }
 
 export const useTenantRegistration = () => {
-  const { $api } = useNuxtApp()
   const auth = useTenantAuth()
+  const feedback = requestFeedback(useNuxtApp())
 
   const loading = ref(false)
 
   const register = async (payload: TenantRegistrationPayload) => {
+    feedback.check('tenant:register')
     loading.value = true
 
     try {
-      await $api.post('/auth/register-tenant', {
-        hospitalName: payload.hospitalName,
-        tenantType: payload.tenantType || 'Hospital',
-        adminName: payload.adminName,
-        adminEmail: payload.email,
-        adminPassword: payload.password,
-        phone: payload.phone || undefined,
+      await $fetch('/api/auth/register-tenant', {
+        method: 'POST', credentials: 'include',
+        retry: 0, timeout: 30000,
+        body: {
+          hospital_name: payload.hospitalName,
+          tenant_type: payload.tenantType || 'Hospital',
+          admin_name: payload.adminName,
+          admin_email: payload.email,
+          admin_password: payload.password,
+          phone: payload.phone || undefined,
+        },
       })
 
       const session = await auth.login({
@@ -34,6 +40,9 @@ export const useTenantRegistration = () => {
       })
 
       return session
+    } catch (error) {
+      feedback.record('tenant:register', error)
+      throw error
     } finally {
       loading.value = false
     }

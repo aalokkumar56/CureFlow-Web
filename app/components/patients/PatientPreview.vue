@@ -3,6 +3,7 @@ import type { PatientRecord } from '~/composables/patients/usePatients'
 import { patientDate, patientInitials, patientList } from '~/utils/patients'
 import { hasPermission, PERMISSIONS } from '~/utils/permissions'
 import { normalizeApiError } from '~/utils/api/errors'
+import { patientContactUrl } from '~/utils/contentSafety'
 const props = defineProps<{ patient: PatientRecord }>()
 defineEmits<{ close: [] }>()
 const auth = useTenantAuth()
@@ -74,13 +75,13 @@ onMounted(load)
     </p>
     <div class="patients-header-actions patient-preview-actions">
       <a
-        v-if="detail.phone"
-        :href="`tel:${detail.phone}`"
+        v-if="patientContactUrl('tel', detail.phone)"
+        :href="patientContactUrl('tel', detail.phone)"
         class="patients-secondary-btn"
         >Call</a
       ><a
-        v-if="detail.email"
-        :href="`mailto:${detail.email}`"
+        v-if="patientContactUrl('mailto', detail.email)"
+        :href="patientContactUrl('mailto', detail.email)"
         class="patients-secondary-btn"
         >Email</a
       ><NuxtLink

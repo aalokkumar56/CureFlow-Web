@@ -1,13 +1,16 @@
 export interface ApiClient {
-  download(url: string): Promise<Blob>
+  getVersioned<T = unknown>(url: string): Promise<{ data: T; etag?: string }>
+  download(url: string, options?: { signal?: AbortSignal }): Promise<Blob>
   get<T = unknown>(
     url: string,
     params?: Record<string, unknown>,
+    options?: { signal?: AbortSignal },
   ): Promise<T>
 
   post<T = unknown>(
     url: string,
     data?: unknown,
+    options?: { ifMatch?: string; idempotencyKey?: string },
   ): Promise<T>
 
   put<T = unknown>(
@@ -18,6 +21,7 @@ export interface ApiClient {
   patch<T = unknown>(
     url: string,
     data?: unknown,
+    options?: { ifMatch?: string },
   ): Promise<T>
 
   delete<T = unknown>(

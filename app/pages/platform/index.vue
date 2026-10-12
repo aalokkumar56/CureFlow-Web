@@ -32,11 +32,7 @@ onMounted(load)
       </div>
       <PlatformState :loading="loading" :error="error" @retry="load">
         <div class="platform-stat-grid">
-          <div
-            v-for="stat in stats"
-            :key="stat.key"
-            class="platform-stat-card"
-            :class="stat.cls">
+          <div v-for="stat in stats" :key="stat.key" class="platform-stat-card" :class="stat.cls">
             <div class="stat-value">{{ data?.[stat.key] ?? '—' }}</div>
             <div class="stat-label">{{ stat.label }}</div>
           </div>
@@ -54,14 +50,11 @@ onMounted(load)
             </div>
           </dl>
         </div>
-        <div v-if="data?.byType" class="platform-detail-panel" style="margin-top:16px">
+        <div v-if="data?.byType" class="platform-detail-panel platform-section-panel">
           <h2>Tenants by type</h2>
-          <div class="platform-tenant-list" style="margin-top:0">
-            <div
-              v-for="item in (data.byType as any[])"
-              :key="item.type"
-              style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f1f5f9">
-              <span style="color:#334155;font-weight:500">{{ displayPlatformValue(item.type) }}</span>
+          <div class="platform-tenant-list platform-list-flush">
+            <div v-for="item in data.byType as any[]" :key="item.type" class="platform-type-row">
+              <span class="platform-type-name">{{ displayPlatformValue(item.type) }}</span>
               <span class="platform-badge">{{ item.count }}</span>
             </div>
           </div>

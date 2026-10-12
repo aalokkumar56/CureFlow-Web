@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { PhDownloadSimple, PhFileText } from '@phosphor-icons/vue'
 import { formatBytes } from '~/utils/whatsapp'
+import { approvedMediaUrl } from '~/utils/contentSafety'
 
 const props = defineProps<{
   url: string
@@ -14,12 +15,19 @@ const { $api } = useNuxtApp()
 const source = ref('')
 const failed = ref(false)
 const loading = ref(true)
+const config = useRuntimeConfig()
 
 onMounted(async () => {
   try {
-    const isRemote = /^https?:\/\//i.test(props.url) && !props.url.includes('/api/conversations/messages/')
-    if (isRemote) source.value = props.url
-    else source.value = URL.createObjectURL(await $api.download(props.url.replace(/^\/api/, '')))
+    if (/^https?:\/\//i.test(props.url)) {
+      const approved = approvedMediaUrl(props.url, config.public.approvedMediaOrigins)
+      if (!approved) throw new Error('Attachment origin is not approved')
+      source.value = approved
+    } else {
+      if (!/^\/api\/conversations\/messages\/[^/?#]+\/media(?:\?[^#]*)?$/.test(props.url))
+        throw new Error('Invalid attachment path')
+      source.value = URL.createObjectURL(await $api.download(props.url.slice(4)))
+    }
   } catch {
     failed.value = true
   } finally {

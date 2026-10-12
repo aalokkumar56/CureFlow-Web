@@ -5,6 +5,7 @@ import { useClinicalSpeech } from './useClinicalSpeech'
 
 export function useDoctorNoteEditor(onSaved: (note: DoctorNote) => void) {
   const { $api } = useNuxtApp()
+  const auth = useTenantAuth()
   const router = useRouter()
   const note = ref<DoctorNote | null>(null)
   const fields = reactive({ subjective: '', objective: '', assessment: '', plan: '' })
@@ -14,6 +15,7 @@ export function useDoctorNoteEditor(onSaved: (note: DoctorNote) => void) {
   const saving = ref(false)
   const error = ref('')
   const conflict = ref(false)
+  const autoSavePaused = ref(false)
   const online = ref(true)
   const elapsed = ref(0)
   let serverAt = 0
@@ -22,9 +24,15 @@ export function useDoctorNoteEditor(onSaved: (note: DoctorNote) => void) {
   let pending: Promise<boolean> | null = null
   let leavePending: Promise<boolean> | null = null
   let disposed = false
+  let generation = 0
   let autoTimer: ReturnType<typeof setInterval>
   let clockTimer: ReturnType<typeof setInterval>
   const snapshot = () => JSON.stringify({ ...fields, original_language: language.value })
+  const tag = (value: DoctorNote) => `"note-${value.id.replaceAll('-', '').toLowerCase()}-r${value.revision}"`
+  const sameRecord = (value: DoctorNote, original: DoctorNote) =>
+    value.id === original.id && value.patient_id === original.patient_id && value.visit_id === original.visit_id &&
+    value.appointment_id === original.appointment_id && (!original.author_user_id || value.author_user_id === original.author_user_id) &&
+    Number.isSafeInteger(value.revision) && value.revision >= 1
   const hasNoteText = computed(() => [fields.subjective, fields.objective, fields.assessment, fields.plan]
     .some(field => field.trim().length > 0))
   const dirty = computed(() => !!note.value && (persisted.value
@@ -32,7 +40,7 @@ export function useDoctorNoteEditor(onSaved: (note: DoctorNote) => void) {
     : hasNoteText.value))
   const editable = computed(() => {
     elapsed.value // Re-evaluate against monotonic elapsed time, independent of the browser clock.
-    return !!note.value?.can_edit && (!note.value.editable_until ||
+    return auth.authority.value === 'verified' && !!note.value?.can_edit && (!note.value.editable_until ||
       Date.parse(note.value.editable_until) > serverAt + (performance.now() - measuredAt))
   })
   const lastSaved = computed(() => {
@@ -56,8 +64,10 @@ export function useDoctorNoteEditor(onSaved: (note: DoctorNote) => void) {
     savedAt = measuredAt - previousAge
   }
   function open(value: DoctorNote) {
+    generation++
     error.value = ''
     conflict.value = false
+    autoSavePaused.value = false
     persisted.value = true
     updateMetadata(value)
     Object.assign(fields, { subjective: value.subjective, objective: value.objective, assessment: value.assessment, plan: value.plan })
@@ -79,21 +89,36 @@ export function useDoctorNoteEditor(onSaved: (note: DoctorNote) => void) {
     persisted.value = false
     savedAt = 0
   }
-  async function save(finalize = false): Promise<boolean> {
+  async function save(finalize = false, automatic = false): Promise<boolean> {
+    if (automatic && autoSavePaused.value) return false
     // Never overlap saves; a later save must capture the latest fields and revision.
     if (pending) {
+      const waitingGeneration = generation
+      const waitingId = note.value?.id
+      const waitingIdentity = auth.identity.value
       const previous = await pending
-      if (!previous) return false
-      return save(finalize)
+      if (!previous || disposed || generation !== waitingGeneration || note.value?.id !== waitingId || auth.identity.value !== waitingIdentity) return false
+      return save(finalize, automatic)
     }
     if (!note.value) return true
     if (!dirty.value && !finalize) return true
+    // A locked workspace already presents session recovery. Do not mislabel
+    // temporary authority checks as an expired clinical editing window.
+    if (auth.authority.value !== 'verified') return false
     if (!editable.value || conflict.value) {
       error.value = conflict.value ? 'Review the server version before saving again.' : 'The editing window has ended. Your unsaved text remains visible.'
       return false
     }
     if (!online.value) { error.value = 'Offline — changes are not synchronized. Keep this page open.'; return false }
     const original = { ...note.value }
+    const currentGeneration = generation
+    const identity = auth.identity.value
+    const authorityEpoch = auth.epoch.value
+    const currentEditor = () => !disposed && generation === currentGeneration && note.value?.id === original.id &&
+      note.value.patient_id === original.patient_id && note.value.visit_id === original.visit_id &&
+      note.value.appointment_id === original.appointment_id
+    const currentAuthority = () => currentEditor() && auth.identity.value === identity &&
+      auth.epoch.value === authorityEpoch && auth.authority.value === 'verified'
     const content = { ...fields, original_language: language.value }
     const captured = JSON.stringify(content)
     saving.value = true
@@ -105,7 +130,8 @@ export function useDoctorNoteEditor(onSaved: (note: DoctorNote) => void) {
             id: original.id, patient_id: original.patient_id, visit_id: original.visit_id,
             appointment_id: original.appointment_id, note_type: original.note_type, ...content,
           })
-          if (disposed) return true
+          if (!currentAuthority()) { if (currentEditor()) autoSavePaused.value = true; return false }
+          if (!sameRecord(created, original)) throw Object.assign(new Error('The saved note did not match this patient and encounter. Review the server version before continuing.'), { recordMismatch: true })
           updateMetadata(created)
           persisted.value = true
           // An ambiguous create retry can recover an older server draft, but must not overwrite it.
@@ -120,15 +146,25 @@ export function useDoctorNoteEditor(onSaved: (note: DoctorNote) => void) {
         const saved = await $api.patch<DoctorNote>(`/clinical/notes/${current.id}`, {
           patient_id: original.patient_id, visit_id: original.visit_id, appointment_id: original.appointment_id,
           revision: current.revision, ...content, finalize,
-        })
-        if (disposed) return true
+        }, { ifMatch: tag(current) })
+        if (!currentAuthority()) { if (currentEditor()) autoSavePaused.value = true; return false }
+        if (!sameRecord(saved, original) || saved.revision !== current.revision + 1)
+          throw Object.assign(new Error('The saved note did not match this patient, encounter and revision. Review the server version before continuing.'), { recordMismatch: true })
         updateMetadata(saved)
         savedAt = performance.now()
         savedSnapshot.value = captured
+        autoSavePaused.value = false
         onSaved(saved)
         return true
       } catch (cause: any) {
-        conflict.value = cause?.response?.status === 409
+        if (!currentEditor()) return false
+        // An interrupted request may already have committed. Timers, pagehide,
+        // visibility and reconnect must not silently send that write again.
+        autoSavePaused.value = true
+        const sessionFailure = auth.authority.value !== 'verified'
+        const status = cause?.response?.status || cause?.statusCode || cause?.status
+        conflict.value = !sessionFailure && ([409, 412, 428, 502, 504].includes(status) || !status || cause?.recordMismatch === true)
+        if (sessionFailure) return false
         error.value = conflict.value
           ? 'Another session changed this note, or a previous save completed without a response. Your text is preserved; review the server version.'
           : cause?.response?.status === 405
@@ -140,6 +176,23 @@ export function useDoctorNoteEditor(onSaved: (note: DoctorNote) => void) {
     return pending
   }
   async function stopAndSave() { await speech.stop(); return save() }
+  async function resubmitReviewed(value: DoctorNote) {
+    if (!note.value || !conflict.value || saving.value || !sameRecord(value, note.value) || value.revision < note.value.revision)
+      return false
+    const original = note.value
+    const currentGeneration = generation
+    const identity = auth.identity.value
+    await speech.stop()
+    if (disposed || generation !== currentGeneration || note.value !== original || auth.identity.value !== identity || auth.authority.value !== 'verified') return false
+    // Adopt only reviewed server metadata; local fields remain untouched.
+    updateMetadata(value)
+    savedSnapshot.value = JSON.stringify({ subjective: value.subjective, objective: value.objective,
+      assessment: value.assessment, plan: value.plan, original_language: value.original_language === 'und' ? 'en-IN' : value.original_language })
+    conflict.value = false
+    error.value = ''
+    autoSavePaused.value = true
+    return save()
+  }
   async function finish() {
     if (!hasNoteText.value) {
       error.value = 'Write or dictate a note before saving it as finished.'
@@ -174,7 +227,7 @@ export function useDoctorNoteEditor(onSaved: (note: DoctorNote) => void) {
   }
   function keepDraft() {
     // Best effort only. The regular timer is the primary durability mechanism.
-    if (!note.value || !persisted.value || !dirty.value || saving.value || conflict.value || !editable.value) return
+    if (autoSavePaused.value || auth.authority.value !== 'verified' || !note.value || !persisted.value || !dirty.value || saving.value || conflict.value || !editable.value) return
     const payload = JSON.stringify({
       patient_id: note.value.patient_id, visit_id: note.value.visit_id,
       appointment_id: note.value.appointment_id, revision: note.value.revision,
@@ -183,21 +236,21 @@ export function useDoctorNoteEditor(onSaved: (note: DoctorNote) => void) {
     if (new TextEncoder().encode(payload).length > 60000) return
     void fetch(`/api/bff/clinical/notes/${note.value.id}`, {
       method: 'PATCH', credentials: 'same-origin', keepalive: true,
-      headers: { 'Content-Type': 'application/json' }, body: payload,
+      headers: { 'Content-Type': 'application/json', 'If-Match': tag(note.value), 'X-CureFlow-Session-Context': auth.identity.value || '' }, body: payload,
     }).catch(() => {})
   }
   function connectivity() {
     online.value = navigator.onLine
-    if (online.value && dirty.value && !conflict.value) void save()
+    if (online.value && dirty.value && !conflict.value) void save(false, true)
   }
   function visibility() {
-    if (document.visibilityState === 'hidden' && dirty.value) void save()
+    if (document.visibilityState === 'hidden' && dirty.value) void save(false, true)
   }
   let removeRoute: (() => void) | undefined
   let removeLogout: (() => void) | undefined
   onMounted(() => {
     online.value = navigator.onLine
-    autoTimer = setInterval(() => { if (dirty.value && !conflict.value) void save() }, 60000)
+    autoTimer = setInterval(() => { if (dirty.value && !conflict.value) void save(false, true) }, 60000)
     clockTimer = setInterval(() => { elapsed.value++ }, 1000)
     removeRoute = router.beforeEach(async (to, from) =>
       to.fullPath === from.fullPath || await prepareToLeave())
@@ -220,5 +273,5 @@ export function useDoctorNoteEditor(onSaved: (note: DoctorNote) => void) {
     document.removeEventListener('visibilitychange', visibility)
   })
   return { note, fields, language, dirty, saving, error, conflict, online, editable,
-    lastSaved, speech, open, create, save, stopAndSave, finish, prepareToLeave }
+    lastSaved, speech, open, create, save, stopAndSave, finish, prepareToLeave, resubmitReviewed }
 }

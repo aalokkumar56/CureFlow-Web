@@ -60,10 +60,10 @@ export const subscriptionFields: PlatformField[] = [
   { key: 'reason', label: 'Reason for change', required: true, min: 3, max: 500 },
 ]
 export const tenantProfileFields: PlatformField[] = [
-  { key: 'name', label: 'Business name', required: true, min: 2, max: 180 },
+  { key: 'name', label: 'Business name', required: true, min: 2, max: 120 },
   { key: 'contactName', label: 'Contact name', max: 120 },
   { key: 'contactEmail', label: 'Contact email', type: 'email', required: true, max: 254 },
-  { key: 'contactPhone', label: 'Contact phone', max: 40 },
+  { key: 'contactPhone', label: 'Contact phone', max: 25 },
   { key: 'country', label: 'Country code', required: true, min: 2, max: 2, pattern: '[A-Za-z]{2}' },
   {
     key: 'timezone',

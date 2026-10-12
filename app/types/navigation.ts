@@ -5,5 +5,6 @@ export type NavigationItem = {
   label: string
   to: string
   permission?: Permission
+  module?: string
   children?: NavigationItem[]
 }

@@ -4,21 +4,30 @@ import { normalizeApiError } from '~/utils/api/errors'
 definePageMeta({ layout: false })
 useHead({ title: 'Platform access' })
 const auth = usePlatformAuth()
+const route = useRoute()
+const notice = computed(() => route.query.logout === 'local-only'
+  ? 'Signed out on this browser. Server session revocation could not be confirmed; contact your administrator if this device was shared.'
+  : route.query.session === 'unavailable' ? 'Session verification is unavailable. Please try again.' : '')
 const checking = ref(true)
 const needsSetup = ref(false)
 const loading = ref(false)
 const error = ref('')
 const form = reactive({ name: '', email: '', password: '', confirmPassword: '' })
-onMounted(async () => {
+const checkSetup = async () => {
+  checking.value = true
+  error.value = ''
   try {
+    await auth.initialize()
+    if (auth.isAuthenticated.value) { await navigateTo('/platform'); return }
     const result = await auth.setupStatus()
-    needsSetup.value = Boolean(result?.needs_setup)
+    needsSetup.value = result.needsSetup
   } catch {
-    needsSetup.value = false
+    error.value = 'Platform access is unavailable. Check your connection and try again.'
   } finally {
     checking.value = false
   }
-})
+}
+onMounted(checkSetup)
 const submit = async () => {
   error.value = ''
   if (needsSetup.value && form.password !== form.confirmPassword) {
@@ -34,7 +43,9 @@ const submit = async () => {
     if (needsSetup.value)
       await auth.bootstrap({ name: form.name, email: form.email, password: form.password })
     else await auth.login(form.email, form.password)
-    await navigateTo('/platform/tenants')
+    form.password = ''
+    form.confirmPassword = ''
+    await navigateTo('/platform')
   } catch (cause) {
     error.value = normalizeApiError(
       cause,
@@ -53,6 +64,9 @@ const submit = async () => {
         <div><strong>CureFlow</strong><small>Platform Console</small></div>
       </div>
       <div v-if="checking" class="platform-login-state">Checking platform setup…</div>
+      <div v-else-if="error && !loading && error.startsWith('Platform access is unavailable')" role="alert">
+        <p>{{ error }}</p><button type="button" class="platform-primary-button" @click="checkSetup">Try again</button>
+      </div>
       <template v-else
         ><h1>{{ needsSetup ? 'Create platform owner' : 'Platform sign in' }}</h1>
         <p class="platform-login-subtitle">
@@ -62,6 +76,7 @@ const submit = async () => {
               : 'Manage hospitals and tenant lifecycle.'
           }}
         </p>
+        <p v-if="notice" role="status">{{ notice }}</p>
         <ValidatedForm :error="error" @submit.prevent="submit"
           ><label v-if="needsSetup"
             >Full name
@@ -69,6 +84,7 @@ const submit = async () => {
               <PhUser :size="17" /><input
                 v-model="form.name"
                 name="name"
+                autocomplete="name"
                 required
                 minlength="2"
                 placeholder="Your name" /></div></label
@@ -78,6 +94,7 @@ const submit = async () => {
               <PhEnvelopeSimple :size="17" /><input
                 v-model="form.email"
                 name="email"
+                autocomplete="username"
                 type="email"
                 required
                 placeholder="ops@cureflow.in" /></div></label
@@ -87,6 +104,7 @@ const submit = async () => {
               <PhLockKey :size="17" /><input
                 v-model="form.password"
                 name="password"
+                :autocomplete="needsSetup ? 'new-password' : 'current-password'"
                 type="password"
                 required
                 :minlength="needsSetup ? 8 : undefined" /></div></label
@@ -96,6 +114,7 @@ const submit = async () => {
               <PhLockKey :size="17" /><input
                 v-model="form.confirmPassword"
                 name="confirmPassword"
+                autocomplete="new-password"
                 data-matches="password"
                 type="password"
                 required

@@ -29,8 +29,11 @@ export default defineNuxtConfig({
   pages: true,
 
   runtimeConfig: {
+    // Private server configuration; never infer production trust from Host or proxy headers.
+    publicOrigin: process.env.NUXT_PUBLIC_ORIGIN || '',
     backendApiUrl: process.env.NUXT_BACKEND_API_URL || 'http://localhost:5180/api',
     public: {
+      approvedMediaOrigins: process.env.NUXT_PUBLIC_APPROVED_MEDIA_ORIGINS || '',
       apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || '/api/bff',
     },
   },

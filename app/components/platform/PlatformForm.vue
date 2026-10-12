@@ -55,6 +55,7 @@ const submit = () => {
           <label
             v-for="field in fields"
             :key="field.key"
+            class="platform-field"
             :class="{
               'platform-checkbox': field.type === 'checkbox',
               'platform-span': field.type === 'permissions',

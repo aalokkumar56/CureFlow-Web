@@ -11,29 +11,50 @@ const from = ref('')
 const to = ref('')
 const page = ref(1)
 const applied = ref('')
-const activity = usePlatformResource<{ items: PlatformRow[]; total: number; page: number; pageSize: number }>(
-  () => '/platform/api-activity?page=' + page.value + '&pageSize=50' + applied.value,
-)
+const activity = usePlatformResource<{
+  items: PlatformRow[]
+  total: number
+  page: number
+  pageSize: number
+}>(() => '/platform/api-activity?page=' + page.value + '&pageSize=50' + applied.value)
 const changes = usePlatformResource<PlatformRow[]>(
   () => '/platform/audit-logs?page=' + page.value + '&search=' + encodeURIComponent(search.value),
 )
-const loading = computed(() => (tab.value === 'activity' ? activity.loading.value : changes.loading.value))
-const error = computed(() => (tab.value === 'activity' ? activity.error.value : changes.error.value))
-const rows = computed(() => (tab.value === 'activity' ? activity.data.value?.items : changes.data.value))
+const loading = computed(() =>
+  tab.value === 'activity' ? activity.loading.value : changes.loading.value,
+)
+const error = computed(() =>
+  tab.value === 'activity' ? activity.error.value : changes.error.value,
+)
+const rows = computed(() =>
+  tab.value === 'activity' ? activity.data.value?.items : changes.data.value,
+)
 const total = computed(() => activity.data.value?.total ?? 0)
 const load = () => (tab.value === 'activity' ? activity.load() : changes.load())
 const apply = () => {
   page.value = 1
-  const query = new URLSearchParams({ search: search.value, errorsOnly: String(errorsOnly.value), method: method.value })
+  const query = new URLSearchParams({
+    search: search.value,
+    errorsOnly: String(errorsOnly.value),
+    method: method.value,
+  })
   if (from.value) query.set('from', new Date(from.value).toISOString())
   if (to.value) query.set('to', new Date(to.value).toISOString())
   applied.value = '&' + query.toString()
   load()
 }
-const choose = (value: string) => { tab.value = value; page.value = 1; load() }
-const step = (delta: number) => { page.value += delta; load() }
+const choose = (value: string) => {
+  tab.value = value
+  page.value = 1
+  load()
+}
+const step = (delta: number) => {
+  page.value += delta
+  load()
+}
 const details = ref<PlatformRow | null>(null)
-const statusClass = (code: unknown) => Number(code) >= 500 ? 'is-negative' : Number(code) >= 400 ? 'is-warn' : 'is-positive'
+const statusClass = (code: unknown) =>
+  Number(code) >= 500 ? 'is-negative' : Number(code) >= 400 ? 'is-warn' : 'is-positive'
 onMounted(load)
 </script>
 <template>
@@ -43,7 +64,9 @@ onMounted(load)
         <div>
           <p class="platform-eyebrow">Governance & observability</p>
           <h1>Audit & API activity</h1>
-          <p>Trace tenant API usage, investigate failures and review platform configuration changes.</p>
+          <p>
+            Trace tenant API usage, investigate failures and review platform configuration changes.
+          </p>
         </div>
         <div class="platform-page-heading-actions">
           <button type="button" class="platform-secondary-button" :disabled="loading" @click="load">
@@ -62,7 +85,7 @@ onMounted(load)
       </nav>
 
       <form class="platform-filter-panel" @submit.prevent="apply">
-        <div class="platform-form-grid" style="grid-template-columns:repeat(4,minmax(0,1fr));align-items:end;margin-bottom:14px">
+        <div class="platform-form-grid platform-audit-filter-grid">
           <label>
             Search
             <input v-model="search" type="search" placeholder="Tenant, route or correlation ID" />
@@ -72,19 +95,23 @@ onMounted(load)
               HTTP method
               <select v-model="method">
                 <option value="">All methods</option>
-                <option v-for="m in ['GET','POST','PUT','PATCH','DELETE']" :key="m">{{ m }}</option>
+                <option v-for="m in ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']" :key="m">
+                  {{ m }}
+                </option>
               </select>
             </label>
             <label>From<input v-model="from" type="datetime-local" /></label>
             <label>Until<input v-model="to" type="datetime-local" :min="from" /></label>
           </template>
         </div>
-        <div style="display:flex;align-items:center;gap:12px">
-          <label v-if="tab === 'activity'" class="platform-checkbox" style="color:#475569;font-size:13px;font-weight:600">
+        <div class="platform-inline-actions">
+          <label v-if="tab === 'activity'" class="platform-checkbox platform-filter-checkbox">
             <input v-model="errorsOnly" type="checkbox" />
             Failures only
           </label>
-          <button type="submit" class="platform-primary-button" :disabled="loading">Apply filters</button>
+          <button type="submit" class="platform-primary-button" :disabled="loading">
+            Apply filters
+          </button>
         </div>
       </form>
 
@@ -109,18 +136,24 @@ onMounted(load)
                 </td>
                 <td>
                   <span class="platform-method">{{ row.method }}</span>
-                  <code style="margin-left:6px">{{ row.route }}</code>
+                  <code class="platform-route-code">{{ row.route }}</code>
                 </td>
                 <td>
-                  <span class="platform-badge" :class="statusClass(row.statusCode)">{{ row.statusCode }}</span>
-                  <small v-if="row.errorCode" class="platform-cell-meta" style="color:#b91c1c">{{ row.errorCode }}</small>
+                  <span class="platform-badge" :class="statusClass(row.statusCode)">{{
+                    row.statusCode
+                  }}</span>
+                  <small v-if="row.errorCode" class="platform-cell-meta platform-error-text">{{
+                    row.errorCode
+                  }}</small>
                 </td>
                 <td>{{ row.durationMs }} ms</td>
                 <td>
                   <small>{{ displayPlatformValue(row.createdAt) }}</small>
                 </td>
                 <td>
-                  <button type="button" class="platform-secondary-button" @click="details = row">Details</button>
+                  <button type="button" class="platform-secondary-button" @click="details = row">
+                    Details
+                  </button>
                 </td>
               </tr>
             </tbody>
@@ -129,16 +162,25 @@ onMounted(load)
 
         <!-- Platform changes list -->
         <div v-else class="platform-tenant-list">
-          <article v-for="row in rows" :key="row.id" class="platform-detail-panel" style="padding:18px 22px">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px">
+          <article
+            v-for="row in rows"
+            :key="row.id"
+            class="platform-detail-panel platform-audit-entry">
+            <div class="platform-audit-entry-heading">
               <div>
-                <strong style="font-size:14px;color:#0f172a">{{ displayPlatformValue(row.action) }}</strong>
-                <small class="platform-cell-meta">{{ row.actor || 'System' }} · {{ row.tenant || 'Platform' }}</small>
+                <strong class="platform-audit-action">{{
+                  displayPlatformValue(row.action)
+                }}</strong>
+                <small class="platform-cell-meta"
+                  >{{ row.actor || 'System' }} · {{ row.tenant || 'Platform' }}</small
+                >
               </div>
-              <small class="platform-muted" style="white-space:nowrap">{{ displayPlatformValue(row.createdAt) }}</small>
+              <small class="platform-muted platform-nowrap">{{
+                displayPlatformValue(row.createdAt)
+              }}</small>
             </div>
             <details>
-              <summary style="cursor:pointer;color:#2563eb;font-size:13px;font-weight:600">View changes and reason</summary>
+              <summary class="platform-details-summary">View changes and reason</summary>
               <pre class="platform-audit-json">{{ row.metadataJson }}</pre>
             </details>
           </article>
@@ -146,18 +188,26 @@ onMounted(load)
       </PlatformState>
 
       <!-- Pagination -->
-      <div class="platform-modal-actions" style="margin-top:20px;justify-content:space-between">
-        <span class="platform-muted" style="font-size:13px">
+      <div class="platform-modal-actions platform-pagination">
+        <span class="platform-muted platform-small-text">
           <template v-if="tab === 'activity'">{{ total.toLocaleString() }} requests total</template>
           <template v-else>Page {{ page }}</template>
         </span>
-        <div style="display:flex;gap:8px;align-items:center">
-          <button type="button" class="platform-secondary-button" :disabled="loading || page === 1" @click="step(-1)">← Previous</button>
-          <span style="font-size:13px;color:#475569;padding:0 4px">Page {{ page }}</span>
+        <div class="platform-pagination-controls">
           <button
             type="button"
             class="platform-secondary-button"
-            :disabled="loading || (tab === 'activity' ? page * 50 >= total : (rows?.length || 0) < 50)"
+            :disabled="loading || page === 1"
+            @click="step(-1)">
+            ← Previous
+          </button>
+          <span class="platform-page-number">Page {{ page }}</span>
+          <button
+            type="button"
+            class="platform-secondary-button"
+            :disabled="
+              loading || (tab === 'activity' ? page * 50 >= total : (rows?.length || 0) < 50)
+            "
             @click="step(1)">
             Next →
           </button>
@@ -166,19 +216,36 @@ onMounted(load)
 
       <!-- Detail drawer -->
       <Transition name="slide-up">
-        <section v-if="details" class="platform-detail-panel platform-editor" style="margin-top:24px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
-            <h2 style="margin:0">Request details</h2>
-            <button type="button" class="platform-secondary-button" @click="details = null">Close</button>
+        <section
+          v-if="details"
+          class="platform-detail-panel platform-editor platform-request-details">
+          <div class="platform-request-details-heading">
+            <h2>Request details</h2>
+            <button type="button" class="platform-secondary-button" @click="details = null">
+              Close
+            </button>
           </div>
-          <dl class="platform-detail-panel" style="border:0;padding:0;box-shadow:none">
-            <div v-for="key in ['tenantName','method','route','statusCode','durationMs','correlationId','errorCode','errorSummary','createdAt']" :key="key">
+          <dl class="platform-detail-panel platform-detail-list-flat">
+            <div
+              v-for="key in [
+                'tenantName',
+                'method',
+                'route',
+                'statusCode',
+                'durationMs',
+                'correlationId',
+                'errorCode',
+                'errorSummary',
+                'createdAt',
+              ]"
+              :key="key">
               <dt>{{ displayPlatformValue(key) }}</dt>
               <dd>{{ displayPlatformValue(details[key]) }}</dd>
             </div>
           </dl>
-          <p class="platform-muted" style="margin-top:14px;font-size:12px">
-            Use the correlation ID to match this request with server diagnostics. Request bodies and clinical data are excluded.
+          <p class="platform-muted platform-detail-note">
+            Use the correlation ID to match this request with server diagnostics. Request bodies and
+            clinical data are excluded.
           </p>
         </section>
       </Transition>
